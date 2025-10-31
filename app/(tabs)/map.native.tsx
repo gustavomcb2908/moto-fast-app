@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
 import Colors from '@/constants/colors';
 import { mockOrders, Order } from '@/constants/mockData';
 import { MapPin, Navigation, RefreshCw } from 'lucide-react-native';
@@ -32,9 +32,58 @@ export default function MapScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permissão de localização negada');
+          return;
+        }
+
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setLocation(currentLocation);
+      } catch (error) {
+        console.error('Erro ao obter localização:', error);
+        setErrorMsg('Não foi possível obter sua localização');
+      }
+    })();
+  }, []);
+
+  const handleCenterOnUser = async () => {
+    try {
+      if (!location && !errorMsg) {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permissão de localização necessária');
+          return;
+        }
+
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setLocation(currentLocation);
+      }
+
+      if (location && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Erro ao centralizar no usuário:', error);
+      setErrorMsg('Não foi possível obter sua localização');
+    }
+  };
+
+  const handleRefreshLocation = async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setErrorMsg('Permissão de localização negada');
+        setErrorMsg('Permissão de localização necessária');
         return;
       }
 
@@ -42,40 +91,18 @@ export default function MapScreen() {
         accuracy: Location.Accuracy.High,
       });
       setLocation(currentLocation);
-    })();
-  }, []);
-
-  const handleCenterOnUser = async () => {
-    if (!location && !errorMsg) {
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setLocation(currentLocation);
-    }
-
-    if (location && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 1000);
-    }
-  };
-
-  const handleRefreshLocation = async () => {
-    const currentLocation = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-    setLocation(currentLocation);
-    
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      }, 1000);
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar localização:', error);
+      setErrorMsg('Não foi possível atualizar sua localização');
     }
   };
 
@@ -138,7 +165,7 @@ export default function MapScreen() {
         <MapView
           ref={mapRef}
           style={styles.map}
-          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+          provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
           initialRegion={{
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
@@ -160,7 +187,7 @@ export default function MapScreen() {
             />
           ))}
 
-          {activeOrders.length > 0 && activeOrders[0].coordinates && (
+          {location && activeOrders.length > 0 && activeOrders[0].coordinates && (
             <Polyline
               coordinates={[
                 {
