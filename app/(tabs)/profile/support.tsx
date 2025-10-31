@@ -9,6 +9,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
@@ -46,8 +47,11 @@ const mockMessages: Message[] = [
   },
 ];
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 export default function SupportScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('faq');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -95,6 +99,20 @@ export default function SupportScreen() {
       }, 100);
     }
   }, [messages, activeTab]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const renderTabBar = () => (
     <View style={styles.tabBar}>
@@ -234,7 +252,7 @@ export default function SupportScreen() {
     <KeyboardAvoidingView
       style={styles.chatContainer}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 + insets.top : 0}
       enabled
     >
       <FlatList
@@ -242,13 +260,13 @@ export default function SupportScreen() {
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={[styles.messagesList, { paddingBottom: insets.bottom + 8 }]}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
 
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { paddingBottom: 12 + insets.bottom }]}>
         <TextInput
           style={styles.messageInput}
           placeholder="Digite sua mensagem..."
@@ -333,17 +351,18 @@ const styles = StyleSheet.create({
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    gap: 10,
+    paddingVertical: 8,
+    gap: 8,
     alignItems: 'center',
   },
   categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: Colors.background,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    minHeight: 38,
+    minHeight: 34,
   },
   categoryChipActive: {
     backgroundColor: Colors.primary,
