@@ -39,6 +39,22 @@ export interface OneTimeToken {
   created_at: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  password_hash: string;
+  role: 'admin';
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  target?: string;
+  created_at: string;
+}
+
 const DB_PREFIX = 'motofast_db_';
 
 class Database {
@@ -58,6 +74,14 @@ class Database {
     } catch (error) {
       console.error('DB setUsers error:', error);
     }
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const users = await this.getUsers();
+    const updated = users.filter(u => u.id !== id);
+    const changed = updated.length !== users.length;
+    if (changed) await this.setUsers(updated);
+    return changed;
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -189,6 +213,61 @@ class Database {
     const refreshTokens = await this.getRefreshTokens();
     const validRT = refreshTokens.filter(t => new Date(t.expires_at) > now || t.revoked_at);
     await this.setRefreshTokens(validRT);
+  }
+
+  async getAdminUsers(): Promise<AdminUser[]> {
+    try {
+      const data = await AsyncStorage.getItem(DB_PREFIX + 'admin_users');
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('DB getAdminUsers error:', error);
+      return [];
+    }
+  }
+
+  async setAdminUsers(admins: AdminUser[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(DB_PREFIX + 'admin_users', JSON.stringify(admins));
+    } catch (error) {
+      console.error('DB setAdminUsers error:', error);
+    }
+  }
+
+  async getAdminByEmail(email: string): Promise<AdminUser | null> {
+    const admins = await this.getAdminUsers();
+    return admins.find(a => a.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async createAdminUser(admin: AdminUser): Promise<AdminUser> {
+    const admins = await this.getAdminUsers();
+    admins.push(admin);
+    await this.setAdminUsers(admins);
+    return admin;
+  }
+
+  async getAuditLogs(): Promise<AuditLog[]> {
+    try {
+      const data = await AsyncStorage.getItem(DB_PREFIX + 'audit_logs');
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('DB getAuditLogs error:', error);
+      return [];
+    }
+  }
+
+  async setAuditLogs(logs: AuditLog[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(DB_PREFIX + 'audit_logs', JSON.stringify(logs));
+    } catch (error) {
+      console.error('DB setAuditLogs error:', error);
+    }
+  }
+
+  async addAuditLog(log: AuditLog): Promise<AuditLog> {
+    const logs = await this.getAuditLogs();
+    logs.push(log);
+    await this.setAuditLogs(logs);
+    return log;
   }
 }
 

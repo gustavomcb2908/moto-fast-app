@@ -7,9 +7,18 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
+const JWT_ADMIN_SECRET = process.env.JWT_ADMIN_SECRET || 'dev-admin-secret-key-change';
+const JWT_ADMIN_EXPIRES_IN = process.env.JWT_ADMIN_EXPIRES_IN || '1h';
+
 export interface JWTPayload {
   userId: string;
   email: string;
+}
+
+export interface AdminJWTPayload {
+  adminId: string;
+  email: string;
+  role: 'admin';
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -42,6 +51,19 @@ export function verifyRefreshToken(token: string): JWTPayload | null {
     return jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
   } catch (error) {
     console.error('Refresh token verification failed:', error);
+    return null;
+  }
+}
+
+export function generateAdminToken(payload: AdminJWTPayload): string {
+  return jwt.sign(payload, JWT_ADMIN_SECRET, { expiresIn: JWT_ADMIN_EXPIRES_IN } as jwt.SignOptions);
+}
+
+export function verifyAdminToken(token: string): AdminJWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_ADMIN_SECRET) as AdminJWTPayload;
+  } catch (error) {
+    console.error('Admin token verification failed:', error);
     return null;
   }
 }
