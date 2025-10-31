@@ -9,6 +9,11 @@ import { resetPasswordProcedure } from "./routes/auth/reset-password";
 import { refreshProcedure } from "./routes/auth/refresh";
 import { logoutProcedure } from "./routes/auth/logout";
 import { meProcedure } from "./routes/auth/me";
+import { updateProfileProcedure } from "./routes/profile/update";
+import { changePasswordProcedure } from "./routes/profile/change-password";
+import { uploadAvatarProcedure } from "./routes/profile/upload-avatar";
+import { getNotificationsProcedure, markNotificationReadProcedure } from "./routes/profile/notifications";
+import { getSupportMessagesProcedure, sendSupportMessageProcedure } from "./routes/profile/support-messages";
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -24,6 +29,15 @@ export const appRouter = createTRPCRouter({
     refresh: refreshProcedure,
     logout: logoutProcedure,
     me: meProcedure,
+  }),
+  profile: createTRPCRouter({
+    update: updateProfileProcedure,
+    changePassword: changePasswordProcedure,
+    uploadAvatar: uploadAvatarProcedure,
+    getNotifications: getNotificationsProcedure,
+    markNotificationRead: markNotificationReadProcedure,
+    getSupportMessages: getSupportMessagesProcedure,
+    sendSupportMessage: sendSupportMessageProcedure,
   }),
 });
 
