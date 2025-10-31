@@ -1,9 +1,8 @@
 import nodemailer from 'nodemailer';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.ethereal.email';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
+const AWS_SES_REGION = process.env.AWS_SES_REGION || 'us-east-1';
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || '';
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'no-reply@motofast.com';
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.EXPO_PUBLIC_FRONTEND_URL || 'http://localhost:8081';
 
@@ -12,8 +11,8 @@ let transporter: nodemailer.Transporter | null = null;
 async function getTransporter() {
   if (transporter) return transporter;
 
-  if (!SMTP_USER || !SMTP_PASS) {
-    console.log('📧 No SMTP credentials found, creating test account...');
+  if (!AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
+    console.log('📧 No AWS SES credentials found, creating test account...');
     const testAccount = await nodemailer.createTestAccount();
     
     transporter = nodemailer.createTransport({
@@ -31,15 +30,16 @@ async function getTransporter() {
   }
 
   transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
+    host: `email-smtp.${AWS_SES_REGION}.amazonaws.com`,
+    port: 587,
+    secure: false,
     auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
+      user: AWS_ACCESS_KEY_ID,
+      pass: AWS_SECRET_ACCESS_KEY,
     },
   });
 
+  console.log('✅ Using Amazon SES for email delivery');
   return transporter;
 }
 
