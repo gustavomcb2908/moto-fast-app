@@ -70,7 +70,8 @@ export default function OnboardingScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
+      quality: 0.6,
+      aspect: [4, 3],
     });
     if (!result.canceled && result.assets[0]) {
       setFormData((prev) => ({ ...prev, [field]: result.assets[0].uri }));
@@ -158,30 +159,65 @@ export default function OnboardingScreen() {
     if (currentStep > 1) setCurrentStep((prev) => (prev - 1) as Step);
   };
 
+  const convertImageToBase64 = async (uri: string | null): Promise<string | undefined> => {
+    if (!uri) return undefined;
+    try {
+      const res = await fetch(uri);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const resultStr = (reader.result as string) ?? '';
+          const base64 = resultStr.includes(',') ? resultStr.split(',')[1] : resultStr;
+          resolve(base64);
+        };
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.log('convertImageToBase64 error', e);
+      return undefined;
+    }
+  };
+
   const handleRegister = async () => {
     setLoading(true);
-    const payload: any = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-      vehicleId: formData.vehicleId,
-      accept_terms: formData.acceptTerms,
-      documents: {
-        id_document: formData.idDocument ?? undefined,
-        driver_license: formData.drivingLicense ?? undefined,
-        proof_of_address: formData.addressProof ?? undefined,
-        selfie: formData.selfie ?? undefined,
-      },
-    };
-    const result = await register(payload);
-    setLoading(false);
+    try {
+      const [idDocumentBase64, driverLicenseBase64, addressProofBase64, selfieBase64] = await Promise.all([
+        convertImageToBase64(formData.idDocument),
+        convertImageToBase64(formData.drivingLicense),
+        convertImageToBase64(formData.addressProof),
+        convertImageToBase64(formData.selfie),
+      ]);
 
-    if (result.success) {
-      Alert.alert('Conta criada', 'Verifique seu e-mail para ativar a conta.');
-      router.replace('/login');
-    } else {
-      Alert.alert('Erro', result.error || 'Erro ao registar');
+      const payload: any = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        vehicleId: formData.vehicleId,
+        accept_terms: formData.acceptTerms,
+        documents: {
+          id_document: idDocumentBase64,
+          driver_license: driverLicenseBase64,
+          proof_of_address: addressProofBase64,
+          selfie: selfieBase64,
+        },
+      };
+
+      const result = await register(payload);
+
+      if (result.success) {
+        Alert.alert('Conta criada', 'Verifique seu e-mail para ativar a conta.');
+        router.replace('/login');
+      } else {
+        Alert.alert('Erro', result.error || 'Erro ao registar');
+      }
+    } catch (error: any) {
+      console.log('Registration error', error);
+      Alert.alert('Erro', error?.message ?? 'Erro ao registar. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
