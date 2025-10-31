@@ -72,7 +72,7 @@ export default function ProfileScreen() {
           </View>
           <TouchableOpacity
             style={styles.editAvatarButton}
-            onPress={() => router.push('./details')}
+            onPress={() => router.push('/profile/details')}
             activeOpacity={0.7}
           >
             <Edit3 size={16} color={Colors.surface} />
@@ -111,19 +111,19 @@ export default function ProfileScreen() {
           <User size={24} color={Colors.text} />,
           'Informações Pessoais',
           'Editar perfil e documentos',
-          () => router.push('./details')
+          () => router.push('/profile/details')
         )}
         {renderMenuItem(
           <Settings size={24} color={Colors.text} />,
           'Definições',
           'Preferências e segurança',
-          () => router.push('./settings')
+          () => router.push('/profile/settings')
         )}
         {renderMenuItem(
           <Bell size={24} color={Colors.text} />,
           'Notificações',
           'Gerir notificações',
-          () => router.push('./notifications'),
+          () => router.push('/profile/notifications'),
           true
         )}
       </View>
@@ -134,19 +134,19 @@ export default function ProfileScreen() {
           <HelpCircle size={24} color={Colors.text} />,
           'Ajuda e Suporte',
           'FAQ e chat de suporte',
-          () => router.push('./support')
+          () => router.push('/profile/support')
         )}
         {renderMenuItem(
           <HelpCircle size={24} color={Colors.text} />,
           'Perguntas Frequentes',
           'Veja as dúvidas mais comuns',
-          () => router.push('./faq')
+          () => router.push('/profile/faq')
         )}
         {renderMenuItem(
           <HelpCircle size={24} color={Colors.text} />,
           'Chat de Suporte',
           'Fale com nossa equipa',
-          () => router.push('./support-chat')
+          () => router.push('/profile/support-chat')
         )}
       </View>
 
