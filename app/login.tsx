@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
@@ -48,10 +49,13 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.logo}>Moto Fast</Text>
-          <Text style={styles.subtitle}>Entregas rápidas e seguras</Text>
-        </View>
+        <LinearGradient
+          colors={[Colors.gradient.start, Colors.gradient.end]}
+          style={styles.header}
+        >
+          <Text style={styles.logo}>MOTOFAST</Text>
+          <Text style={styles.subtitle}>ALUGUER DE MOTOS</Text>
+        </LinearGradient>
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
@@ -88,7 +92,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.forgotButton}
-            onPress={() => console.log('Forgot password')}
+            onPress={() => router.push('/forgot-password')}
           >
             <Text style={styles.forgotText}>Esqueceu a senha?</Text>
           </TouchableOpacity>
@@ -120,7 +124,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/onboarding')}
           >
             <Text style={styles.registerText}>
-              Não tem conta? <Text style={styles.registerTextBold}>Registar</Text>
+              Não tem conta? <Text style={styles.registerTextBold}>Criar Conta</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -136,25 +140,30 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    paddingTop: 80,
+    paddingBottom: 60,
+    marginBottom: 40,
   },
   logo: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: Colors.surface,
+    letterSpacing: 2,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '300' as const,
+    color: Colors.surface,
+    letterSpacing: 3,
+    opacity: 0.9,
   },
   form: {
     gap: 16,
+    paddingHorizontal: 24,
   },
   inputContainer: {
     flexDirection: 'row',

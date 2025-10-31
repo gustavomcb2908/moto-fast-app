@@ -15,8 +15,11 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Voltar" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="welcome" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="forgot-password" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="kyc-status" options={{ presentation: 'card' }} />
     </Stack>
   );
 }

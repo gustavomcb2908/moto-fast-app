@@ -9,11 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
+import { useCameraPermissions } from 'expo-camera';
 import {
   User,
   Mail,
@@ -23,9 +26,10 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
+  Camera,
 } from 'lucide-react-native';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -41,8 +45,11 @@ export default function OnboardingScreen() {
     idDocument: null as string | null,
     drivingLicense: null as string | null,
     addressProof: null as string | null,
+    selfie: null as string | null,
     vehicleId: 'v123',
   });
+
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const pickImage = async (field: 'idDocument' | 'drivingLicense' | 'addressProof') => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -59,16 +66,34 @@ export default function OnboardingScreen() {
   const handleNext = () => {
     if (currentStep === 1) {
       if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-        alert('Por favor, preencha todos os campos');
+        Alert.alert('Erro', 'Por favor, preencha todos os campos');
         return;
       }
       if (formData.password !== formData.confirmPassword) {
-        alert('As senhas não coincidem');
+        Alert.alert('Erro', 'As senhas não coincidem');
+        return;
+      }
+      if (formData.password.length < 6) {
+        Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
         return;
       }
     }
 
-    if (currentStep < 4) {
+    if (currentStep === 2) {
+      if (!formData.idDocument || !formData.drivingLicense || !formData.addressProof) {
+        Alert.alert('Erro', 'Por favor, carregue todos os documentos');
+        return;
+      }
+    }
+
+    if (currentStep === 3) {
+      if (!formData.selfie) {
+        Alert.alert('Erro', 'Por favor, tire uma selfie para verificação');
+        return;
+      }
+    }
+
+    if (currentStep < 5) {
       setCurrentStep((prev) => (prev + 1) as Step);
     } else {
       handleRegister();
@@ -93,9 +118,43 @@ export default function OnboardingScreen() {
     }
   };
 
+  const takeSelfie = async () => {
+    if (!cameraPermission) {
+      await requestCameraPermission();
+      return;
+    }
+
+    if (!cameraPermission.granted) {
+      Alert.alert(
+        'Permissão necessária',
+        'Precisamos de acesso à câmera para tirar a selfie',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Permitir', onPress: requestCameraPermission },
+        ]
+      );
+      return;
+    }
+
+    pickImageFromGallery();
+  };
+
+  const pickImageFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [1, 1],
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
+    }
+  };
+
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
-      {[1, 2, 3, 4].map((step) => (
+      {[1, 2, 3, 4, 5].map((step) => (
         <View
           key={step}
           style={[
@@ -220,6 +279,48 @@ export default function OnboardingScreen() {
     </View>
   );
 
+  const renderSelfie = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Verificação</Text>
+      <Text style={styles.stepSubtitle}>Tire uma selfie para verificação de identidade</Text>
+
+      {formData.selfie ? (
+        <View style={styles.selfiePreview}>
+          <Image source={{ uri: formData.selfie }} style={styles.selfieImage} />
+          <TouchableOpacity
+            style={styles.retakeButton}
+            onPress={() => setFormData((prev) => ({ ...prev, selfie: null }))}
+          >
+            <Text style={styles.retakeButtonText}>Tirar Novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.selfieOptions}>
+          <TouchableOpacity style={styles.selfieButton} onPress={takeSelfie}>
+            <Camera size={32} color={Colors.primary} />
+            <Text style={styles.selfieButtonText}>Tirar Selfie</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.selfieButtonSecondary}
+            onPress={pickImageFromGallery}
+          >
+            <Upload size={24} color={Colors.textSecondary} />
+            <Text style={styles.selfieButtonSecondaryText}>Escolher da Galeria</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Dicas para uma boa selfie:</Text>
+        <Text style={styles.infoItem}>• Boa iluminação no rosto</Text>
+        <Text style={styles.infoItem}>• Olhar diretamente para a câmera</Text>
+        <Text style={styles.infoItem}>• Remover óculos e acessórios</Text>
+        <Text style={styles.infoItem}>• Expressão neutra</Text>
+      </View>
+    </View>
+  );
+
   const renderVehicle = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Veículo</Text>
@@ -271,8 +372,10 @@ export default function OnboardingScreen() {
       case 2:
         return renderDocuments();
       case 3:
-        return renderVehicle();
+        return renderSelfie();
       case 4:
+        return renderVehicle();
+      case 5:
         return renderContract();
       default:
         return null;
@@ -315,7 +418,7 @@ export default function OnboardingScreen() {
           ) : (
             <>
               <Text style={styles.nextButtonText}>
-                {currentStep === 4 ? 'Finalizar' : 'Próximo'}
+                {currentStep === 5 ? 'Finalizar' : 'Próximo'}
               </Text>
               <ArrowRight size={20} color={Colors.surface} />
             </>
@@ -516,5 +619,80 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.surface,
+  },
+  selfiePreview: {
+    alignItems: 'center',
+    gap: 20,
+  },
+  selfieImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: Colors.primary,
+  },
+  retakeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  retakeButtonText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  selfieOptions: {
+    gap: 16,
+  },
+  selfieButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: Colors.primary + '15',
+    padding: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  selfieButtonText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  selfieButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: Colors.surface,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  selfieButtonSecondaryText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  infoCard: {
+    backgroundColor: Colors.surfaceAlt,
+    padding: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  infoTitle: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  infoItem: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
 });

@@ -11,11 +11,21 @@ export interface User {
   vehicleId?: string;
 }
 
+export type KYCStatus = 'pending' | 'approved' | 'rejected' | 'not_submitted';
+
+export interface KYCData {
+  status: KYCStatus;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reason?: string;
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  kycStatus: KYCData | null;
 }
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
@@ -24,6 +34,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     token: null,
     isLoading: true,
     isAuthenticated: false,
+    kycStatus: null,
   });
 
   useEffect(() => {
@@ -34,14 +45,17 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       const token = await AsyncStorage.getItem('auth_token');
       const userStr = await AsyncStorage.getItem('user');
+      const kycStr = await AsyncStorage.getItem('kyc_status');
       
       if (token && userStr) {
         const user = JSON.parse(userStr);
+        const kycStatus = kycStr ? JSON.parse(kycStr) : null;
         setAuthState({
           user,
           token,
           isLoading: false,
           isAuthenticated: true,
+          kycStatus,
         });
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
@@ -63,15 +77,22 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         vehicleId: 'v123',
       };
       const mockToken = 'mock-jwt-token-12345';
+      const mockKYC: KYCData = {
+        status: 'approved',
+        submittedAt: new Date().toISOString(),
+        reviewedAt: new Date().toISOString(),
+      };
 
       await AsyncStorage.setItem('auth_token', mockToken);
       await AsyncStorage.setItem('user', JSON.stringify(mockUser));
+      await AsyncStorage.setItem('kyc_status', JSON.stringify(mockKYC));
 
       setAuthState({
         user: mockUser,
         token: mockToken,
         isLoading: false,
         isAuthenticated: true,
+        kycStatus: mockKYC,
       });
 
       return { success: true };
@@ -92,15 +113,21 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         vehicleId: userData.vehicleId,
       };
       const mockToken = 'mock-jwt-token-' + Date.now();
+      const newKYC: KYCData = {
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+      };
 
       await AsyncStorage.setItem('auth_token', mockToken);
       await AsyncStorage.setItem('user', JSON.stringify(newUser));
+      await AsyncStorage.setItem('kyc_status', JSON.stringify(newKYC));
 
       setAuthState({
         user: newUser,
         token: mockToken,
         isLoading: false,
         isAuthenticated: true,
+        kycStatus: newKYC,
       });
 
       return { success: true };
@@ -114,14 +141,30 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('kyc_status');
       setAuthState({
         user: null,
         token: null,
         isLoading: false,
         isAuthenticated: false,
+        kycStatus: null,
       });
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  }, []);
+
+  const updateKYCStatus = useCallback(async (kycData: KYCData) => {
+    try {
+      await AsyncStorage.setItem('kyc_status', JSON.stringify(kycData));
+      setAuthState(prev => ({
+        ...prev,
+        kycStatus: kycData,
+      }));
+      return { success: true };
+    } catch (error) {
+      console.error('Update KYC error:', error);
+      return { success: false, error: 'Erro ao atualizar status KYC' };
     }
   }, []);
 
@@ -130,5 +173,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     login,
     register,
     logout,
-  }), [authState, login, register, logout]);
+    updateKYCStatus,
+  }), [authState, login, register, logout, updateKYCStatus]);
 });

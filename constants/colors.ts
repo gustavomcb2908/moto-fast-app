@@ -1,21 +1,23 @@
 export default {
-  primary: '#0066FF',
-  primaryDark: '#0052CC',
-  secondary: '#00C853',
-  secondaryDark: '#00A843',
+  primary: '#16A34A',
+  primaryLight: '#4ADE80',
+  primaryDark: '#15803D',
+  secondary: '#22C55E',
+  secondaryDark: '#16A34A',
   
-  background: '#F8F9FA',
+  background: '#FFFFFF',
+  backgroundAlt: '#F9FAFB',
   surface: '#FFFFFF',
-  surfaceAlt: '#F1F3F5',
+  surfaceAlt: '#F3F4F6',
   
-  text: '#1A1A1A',
+  text: '#000000',
   textSecondary: '#6B7280',
   textLight: '#9CA3AF',
   
-  success: '#00C853',
-  warning: '#FFA726',
-  error: '#EF5350',
-  info: '#29B6F6',
+  success: '#22C55E',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
   
   border: '#E5E7EB',
   borderLight: '#F3F4F6',
@@ -23,5 +25,10 @@ export default {
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
   
-  statusBar: '#0052CC',
+  statusBar: '#15803D',
+  
+  gradient: {
+    start: '#22D970',
+    end: '#16C75F',
+  },
 };
