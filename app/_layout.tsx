@@ -59,8 +59,8 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
+function AppShell() {
+  const [showSplash, setShowSplash] = useState<boolean>(true);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -75,16 +75,22 @@ export default function RootLayout() {
   }, [isAuthenticated]);
 
   return (
+    <View style={{ flex: 1 }}>
+      <RootLayoutNav />
+      {showSplash && <AppSplashOverlay />}
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <ThemedDialogProvider>
-                <View style={{ flex: 1 }}>
-                  <RootLayoutNav />
-                  {showSplash && <AppSplashOverlay />}
-                </View>
+                <AppShell />
               </ThemedDialogProvider>
             </GestureHandlerRootView>
           </AuthProvider>
