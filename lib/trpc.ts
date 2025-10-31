@@ -19,9 +19,8 @@ const getBaseUrl = () => {
   const rawEnv = envCandidates[0] ?? "";
   if (rawEnv) {
     if (!isHttpUrl(rawEnv)) {
-      throw new Error(
-        "Invalid EXPO_PUBLIC_BACKEND_URL. Must start with http:// or https://"
-      );
+      console.error("Invalid EXPO_PUBLIC_BACKEND_URL. Must start with http:// or https://");
+      return "";
     }
     return sanitizeUrl(rawEnv);
   }
@@ -30,9 +29,8 @@ const getBaseUrl = () => {
     return sanitizeUrl(window.location.origin);
   }
 
-  throw new Error(
-    "Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL (http/https) to your API base."
-  );
+  console.warn("Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL to your API base.");
+  return "";
 };
 
 export const trpcClient = trpc.createClient({
@@ -43,9 +41,13 @@ export const trpcClient = trpc.createClient({
       async headers() {
         try {
           const token = await AsyncStorage.getItem('access_token');
-          return token ? { Authorization: `Bearer ${token}` } : {};
+          const lang = await AsyncStorage.getItem('user_language');
+          return {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...(lang ? { 'Accept-Language': lang } : {}),
+          } as Record<string, string>;
         } catch {
-          return {};
+          return {} as Record<string, string>;
         }
       },
       fetch(url, options) {
