@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { mockVehicle, mockInvoices, mockInspection } from '@/constants/mockData';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   Car,
@@ -13,12 +12,16 @@ import {
   ChevronRight,
   Calendar,
 } from 'lucide-react-native';
+import { trpc } from '@/lib/trpc';
 
 export default function RentalScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const nextInvoice = mockInvoices.find((inv) => inv.status === 'pending');
-  const hasInspectionPending = mockInspection.status === 'pending';
+  const { data, isLoading, error, refetch } = trpc.rental.getSummary.useQuery({});
+
+  const vehicle = data?.data?.vehicle;
+  const nextInvoice = data?.data?.nextInvoice as { id: string; amount: number; dueDate: string; status: string } | undefined;
+  const hasInspectionPending = false;
 
   const renderMenuCard = (
     icon: React.ReactNode,
@@ -47,6 +50,25 @@ export default function RentalScreen() {
     </TouchableOpacity>
   );
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}> 
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !vehicle) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 16 }]}> 
+        <Text style={{ color: colors.error, marginBottom: 12 }}>Falha ao carregar dados</Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' as const }}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <>
       <Stack.Screen
@@ -62,15 +84,15 @@ export default function RentalScreen() {
           <View style={styles.vehicleHeader}>
             <Car size={32} color={colors.primary} />
             <View style={styles.vehicleInfo}>
-              <Text style={styles.vehiclePlate}>{mockVehicle.plate}</Text>
-              <Text style={styles.vehicleModel}>{mockVehicle.model}</Text>
+              <Text style={styles.vehiclePlate}>{vehicle.plate}</Text>
+              <Text style={styles.vehicleModel}>{vehicle.model}</Text>
             </View>
             <View
               style={[
                 styles.statusBadge,
                 {
                   backgroundColor:
-                    mockVehicle.rentalStatus === 'active'
+                    vehicle.rentalStatus === 'active'
                       ? colors.success + '15'
                       : colors.warning + '15',
                 },
@@ -81,11 +103,11 @@ export default function RentalScreen() {
                   styles.statusText,
                   {
                     color:
-                      mockVehicle.rentalStatus === 'active' ? colors.success : colors.warning,
+                      vehicle.rentalStatus === 'active' ? colors.success : colors.warning,
                   },
                 ]}
               >
-                {mockVehicle.rentalStatus === 'active' ? 'Ativo' : 'Pendente'}
+                {vehicle.rentalStatus === 'active' ? 'Ativo' : 'Pendente'}
               </Text>
             </View>
           </View>
@@ -95,12 +117,12 @@ export default function RentalScreen() {
           <View style={styles.vehicleDetails}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Valor Mensal</Text>
-              <Text style={styles.detailValue}>€{mockVehicle.monthlyFee.toFixed(2)}</Text>
+              <Text style={styles.detailValue}>€{Number(vehicle.monthlyFee).toFixed(2)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Próximo Pagamento</Text>
               <Text style={styles.detailValue}>
-                {new Date(mockVehicle.nextPayment).toLocaleDateString('pt-PT')}
+                {new Date(vehicle.nextPayment).toLocaleDateString('pt-PT')}
               </Text>
             </View>
           </View>
@@ -155,7 +177,7 @@ export default function RentalScreen() {
             'Ver e pagar faturas',
             () => router.push('invoices' as any),
             nextInvoice
-              ? { text: `€${nextInvoice.amount.toFixed(2)}`, color: colors.warning }
+              ? { text: `€${Number(nextInvoice.amount).toFixed(2)}`, color: colors.warning }
               : undefined
           )}
           {renderMenuCard(

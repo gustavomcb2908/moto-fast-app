@@ -1,31 +1,54 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FileText, CheckCircle2, AlertTriangle, Clock, ChevronRight } from 'lucide-react-native';
-import { mockInvoices } from '@/constants/mockData';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { trpc } from '@/lib/trpc';
 
 export default function InvoicesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { data, isLoading, error, refetch } = trpc.rental.listInvoices.useQuery({});
+
+  const invoices = (data?.data ?? []) as { id: string; amount: number; dueDate: string; status: string }[];
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 16 }]}>
+        <Text style={{ color: colors.error, marginBottom: 12 }}>Falha ao carregar faturas</Text>
+        <TouchableOpacity onPress={() => refetch()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
+          <Text style={{ color: '#fff', fontWeight: '700' as const }}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container} testID="invoices-screen">
       <Stack.Screen options={{ title: 'Faturas' }} />
       <FlatList
-        data={mockInvoices}
+        data={invoices}
         keyExtractor={(i) => String(i.id)}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
-          const status = item.status as 'paid' | 'pending' | 'overdue';
+          const status = (item.status ?? 'pending') as 'paid' | 'pending' | 'overdue';
           const chip = {
             paid: { color: colors.success, label: 'Pago', Icon: CheckCircle2 },
             pending: { color: colors.warning, label: 'Pendente', Icon: Clock },
             overdue: { color: colors.error, label: 'Atrasado', Icon: AlertTriangle },
           }[status];
           const ChipIcon = chip.Icon;
+          const goToPay = () => router.push({ pathname: '/(tabs)/rental/pay', params: { invoiceId: item.id, amount: String(item.amount) } });
           return (
-            <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={status !== 'paid' ? goToPay : undefined} testID={`invoice-${item.id}`}>
               <View style={styles.iconWrap}>
                 <FileText size={20} color={colors.primary} />
               </View>

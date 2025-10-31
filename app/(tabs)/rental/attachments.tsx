@@ -1,14 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { Paperclip, UploadCloud } from 'lucide-react-native';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { trpc } from '@/lib/trpc';
 
 export default function AttachmentsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [file, setFile] = useState<{ uri: string } | null>(null);
+  const params = useLocalSearchParams<{ invoiceId?: string; paymentId?: string }>();
+  const uploadMutation = trpc.rental.attachments.upload.useMutation();
 
   const pickFile = async () => {
     try {
@@ -19,6 +22,17 @@ export default function AttachmentsScreen() {
       console.log('Picked image:', asset?.uri);
     } catch (e) {
       console.log('File pick error', e);
+    }
+  };
+
+  const upload = async () => {
+    try {
+      if (!file?.uri) return;
+      await uploadMutation.mutateAsync({ invoiceId: params.invoiceId ? String(params.invoiceId) : undefined, paymentId: params.paymentId ? String(params.paymentId) : undefined, fileUri: file.uri });
+      Alert.alert('Anexo', 'Comprovativo enviado com sucesso!');
+      setFile(null);
+    } catch (e: any) {
+      Alert.alert('Erro', e?.message ?? 'Falha ao enviar comprovativo');
     }
   };
 
@@ -41,6 +55,10 @@ export default function AttachmentsScreen() {
         <TouchableOpacity style={styles.button} onPress={pickFile} activeOpacity={0.8} testID="pick-proof">
           <UploadCloud size={18} color="#fff" />
           <Text style={styles.buttonText}>Selecionar arquivo</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.button, { backgroundColor: colors.success, opacity: uploadMutation.isPending ? 0.7 : 1 }]} onPress={upload} activeOpacity={0.8} disabled={!file?.uri || uploadMutation.isPending} testID="upload-proof">
+          {uploadMutation.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Enviar</Text>}
         </TouchableOpacity>
       </View>
     </View>

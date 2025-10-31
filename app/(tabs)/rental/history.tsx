@@ -1,23 +1,37 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CheckCircle2, AlertTriangle, CreditCard } from 'lucide-react-native';
 import { Stack } from 'expo-router';
-
-const data = [
-  { id: 'tx_1', amount: 150.0, date: new Date().toISOString(), method: 'card', status: 'succeeded' },
-  { id: 'tx_2', amount: 120.0, date: new Date(Date.now()-86400000).toISOString(), method: 'manual', status: 'pending' },
-];
+import { trpc } from '@/lib/trpc';
 
 export default function HistoryScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { data, isLoading, error, refetch } = trpc.rental.payments.history.useQuery({});
+  const rows = (data?.data ?? []) as { id: string; amount: number; date: string; method: string; status: string }[];
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: colors.error }} onPress={() => refetch()}>Falha ao carregar histórico. Toque para tentar novamente.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container} testID="history-screen">
       <Stack.Screen options={{ title: 'Histórico' }} />
       <FlatList
-        data={data}
+        data={rows}
         keyExtractor={(i) => i.id}
         contentContainerStyle={{ padding: 16, gap: 8 }}
         renderItem={({ item }) => {
