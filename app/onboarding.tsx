@@ -53,6 +53,7 @@ export default function OnboardingScreen() {
     addressProof: null as string | null,
     selfie: null as string | null,
     vehicleId: 'v123',
+    hasOwnMotorcycle: false,
     acceptTerms: false,
   });
 
@@ -195,7 +196,8 @@ export default function OnboardingScreen() {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        vehicleId: formData.vehicleId,
+        hasOwnMotorcycle: formData.hasOwnMotorcycle,
+        vehicleId: formData.hasOwnMotorcycle ? undefined : formData.vehicleId,
         accept_terms: formData.acceptTerms,
         documents: {
           id_document: idDocumentBase64,
@@ -387,15 +389,31 @@ export default function OnboardingScreen() {
     return (
       <View style={styles.stepContent}>
         <Text style={styles.stepTitle}>Veículo</Text>
-        <Text style={styles.stepSubtitle}>Escolha o seu veículo</Text>
+        <Text style={styles.stepSubtitle}>Escolha o seu veículo ou indique que possui um</Text>
 
-        <View style={{ gap: 12 }}>
+        <TouchableOpacity
+          onPress={() => setFormData((p) => ({ ...p, hasOwnMotorcycle: !p.hasOwnMotorcycle }))}
+          activeOpacity={0.9}
+          style={[styles.vehicleCard, { borderWidth: 2, borderColor: formData.hasOwnMotorcycle ? Colors.primary : Colors.border }]}
+          testID="own-moto-toggle"
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.vehicleName}>Tenho minha moto própria</Text>
+            {formData.hasOwnMotorcycle && <CheckCircle size={20} color={Colors.primary} />}
+          </View>
+          <Text style={styles.vehicleDescription}>Selecionando esta opção, você usará sua própria moto nas entregas.</Text>
+        </TouchableOpacity>
+
+        <View style={{ gap: 12, opacity: formData.hasOwnMotorcycle ? 0.5 : 1 }}>
           {vehicles.map((v) => {
-            const selected = formData.vehicleId === v.id;
+            const selected = !formData.hasOwnMotorcycle && formData.vehicleId === v.id;
             return (
               <TouchableOpacity
                 key={v.id}
-                onPress={() => setFormData((p) => ({ ...p, vehicleId: v.id }))}
+                onPress={() => {
+                  if (!formData.hasOwnMotorcycle) setFormData((p) => ({ ...p, vehicleId: v.id }));
+                }}
+                disabled={formData.hasOwnMotorcycle}
                 activeOpacity={0.9}
                 style={[
                   styles.vehicleCard,

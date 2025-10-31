@@ -136,15 +136,6 @@ export default function WelcomeScreen() {
             {currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}
           </Text>
         </TouchableOpacity>
-
-        {currentIndex === slides.length - 1 && (
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => router.push('/login')}
-          >
-            <Text style={styles.loginButtonText}>Já tenho conta</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </LinearGradient>
   );
