@@ -136,6 +136,18 @@ export default function ProfileScreen() {
           'FAQ e chat de suporte',
           () => router.push('./support')
         )}
+        {renderMenuItem(
+          <HelpCircle size={24} color={Colors.text} />,
+          'Perguntas Frequentes',
+          'Veja as dúvidas mais comuns',
+          () => router.push('./faq')
+        )}
+        {renderMenuItem(
+          <HelpCircle size={24} color={Colors.text} />,
+          'Chat de Suporte',
+          'Fale com nossa equipa',
+          () => router.push('./support-chat')
+        )}
       </View>
 
       <TouchableOpacity
