@@ -6,11 +6,8 @@ import { Platform } from "react-native";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-const normalizeUrl = (url: string) => {
-  if (!url) return url;
-  if (url.startsWith("exp://") || url.startsWith("file://")) return "";
-  return url.replace(/\/$/, "");
-};
+const sanitizeUrl = (url: string) => url.replace(/\/$/, "");
+const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
 
 const getBaseUrl = () => {
   const envCandidates = [
@@ -18,15 +15,22 @@ const getBaseUrl = () => {
     process.env.EXPO_PUBLIC_RORK_API_BASE_URL,
   ].filter(Boolean) as string[];
 
-  const envUrl = normalizeUrl(envCandidates[0] ?? "");
-  if (envUrl) return envUrl;
+  const rawEnv = envCandidates[0] ?? "";
+  if (rawEnv) {
+    if (!isHttpUrl(rawEnv)) {
+      throw new Error(
+        "Invalid EXPO_PUBLIC_BACKEND_URL. Must start with http:// or https://"
+      );
+    }
+    return sanitizeUrl(rawEnv);
+  }
 
   if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.origin) {
-    return normalizeUrl(window.location.origin);
+    return sanitizeUrl(window.location.origin);
   }
 
   throw new Error(
-    "Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL"
+    "Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL (http/https) to your API base."
   );
 };
 
