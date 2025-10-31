@@ -14,6 +14,7 @@ import { changePasswordProcedure } from "./routes/profile/change-password";
 import { uploadAvatarProcedure } from "./routes/profile/upload-avatar";
 import { getNotificationsProcedure, markNotificationReadProcedure } from "./routes/profile/notifications";
 import { getSupportMessagesProcedure, sendSupportMessageProcedure } from "./routes/profile/support-messages";
+import rentalRouter from './routes/rental/router';
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -39,6 +40,7 @@ export const appRouter = createTRPCRouter({
     getSupportMessages: getSupportMessagesProcedure,
     sendSupportMessage: sendSupportMessageProcedure,
   }),
+  rental: rentalRouter,
 });
 
 export type AppRouter = typeof appRouter;
