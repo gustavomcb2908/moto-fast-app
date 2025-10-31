@@ -14,8 +14,10 @@ import {
 import { router, Stack } from 'expo-router';
 import Colors from '@/constants/colors';
 import { Mail, ArrowRight } from 'lucide-react-native';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ForgotPasswordScreen() {
+  const { recoverPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -34,10 +36,14 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     
-    setTimeout(() => {
-      setLoading(false);
+    const result = await recoverPassword(email);
+    setLoading(false);
+    
+    if (result.success) {
       setEmailSent(true);
-    }, 1500);
+    } else {
+      Alert.alert('Erro', result.error || 'Erro ao enviar email de recuperação');
+    }
   };
 
   if (emailSent) {

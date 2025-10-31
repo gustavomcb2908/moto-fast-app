@@ -1,40 +1,49 @@
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { trpcClient } from '@/lib/trpc';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  role: 'courier';
-  vehicleId?: string;
+  kyc_status: 'pending' | 'approved' | 'rejected';
+  email_verified: boolean;
 }
 
-export type KYCStatus = 'pending' | 'approved' | 'rejected' | 'not_submitted';
-
-export interface KYCData {
-  status: KYCStatus;
-  submittedAt?: string;
-  reviewedAt?: string;
-  reason?: string;
-}
+export type KYCStatus = 'pending' | 'approved' | 'rejected';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
+  refreshToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  kycStatus: KYCData | null;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  vehicleId?: string;
+  documents?: {
+    id_document?: string;
+    driver_license?: string;
+    proof_of_address?: string;
+    selfie?: string;
+  };
+  accept_terms: boolean;
 }
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: null,
+    accessToken: null,
+    refreshToken: null,
     isLoading: true,
     isAuthenticated: false,
-    kycStatus: null,
   });
 
   useEffect(() => {
@@ -43,20 +52,33 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const loadStoredAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('auth_token');
+      const accessToken = await AsyncStorage.getItem('access_token');
+      const refreshToken = await AsyncStorage.getItem('refresh_token');
       const userStr = await AsyncStorage.getItem('user');
-      const kycStr = await AsyncStorage.getItem('kyc_status');
       
-      if (token && userStr) {
+      if (accessToken && refreshToken && userStr) {
         const user = JSON.parse(userStr);
-        const kycStatus = kycStr ? JSON.parse(kycStr) : null;
         setAuthState({
           user,
-          token,
+          accessToken,
+          refreshToken,
           isLoading: false,
           isAuthenticated: true,
-          kycStatus,
         });
+        
+        try {
+          const meData = await trpcClient.auth.me.query();
+          if (meData.success) {
+            const updatedUser = meData.data;
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            setAuthState(prev => ({
+              ...prev,
+              user: updatedUser as User,
+            }));
+          }
+        } catch (error) {
+          console.log('Failed to refresh user data, using stored data');
+        }
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
@@ -68,111 +90,247 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const mockUser: User = {
-        id: 'c001',
-        name: 'João Estafeta',
-        email,
-        phone: '+351 912 345 678',
-        role: 'courier',
-        vehicleId: 'v123',
-      };
-      const mockToken = 'mock-jwt-token-12345';
-      const mockKYC: KYCData = {
-        status: 'approved',
-        submittedAt: new Date().toISOString(),
-        reviewedAt: new Date().toISOString(),
-      };
+      console.log('🔐 Attempting login...');
+      const result = await trpcClient.auth.login.mutate({ email, password });
 
-      await AsyncStorage.setItem('auth_token', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-      await AsyncStorage.setItem('kyc_status', JSON.stringify(mockKYC));
+      if (result.success && result.data) {
+        const { accessToken, refreshToken, user } = result.data;
 
-      setAuthState({
-        user: mockUser,
-        token: mockToken,
-        isLoading: false,
-        isAuthenticated: true,
-        kycStatus: mockKYC,
-      });
+        await AsyncStorage.setItem('access_token', accessToken);
+        await AsyncStorage.setItem('refresh_token', refreshToken);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
 
-      return { success: true };
-    } catch (error) {
-      console.error('Login error:', error);
+        setAuthState({
+          user: user as User,
+          accessToken,
+          refreshToken,
+          isLoading: false,
+          isAuthenticated: true,
+        });
+
+        console.log('✅ Login successful');
+        return { success: true };
+      }
+
       return { success: false, error: 'Erro ao fazer login' };
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao fazer login' 
+      };
     }
   }, []);
 
-  const register = useCallback(async (userData: any) => {
+  const register = useCallback(async (userData: RegisterData) => {
     try {
-      const newUser: User = {
-        id: 'c' + Date.now(),
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        role: 'courier',
-        vehicleId: userData.vehicleId,
-      };
-      const mockToken = 'mock-jwt-token-' + Date.now();
-      const newKYC: KYCData = {
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
-      };
+      console.log('📝 Attempting registration...');
+      const result = await trpcClient.auth.register.mutate(userData);
 
-      await AsyncStorage.setItem('auth_token', mockToken);
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
-      await AsyncStorage.setItem('kyc_status', JSON.stringify(newKYC));
+      if (result.success) {
+        console.log('✅ Registration successful');
+        return { 
+          success: true,
+          message: result.message,
+          requiresVerification: true,
+        };
+      }
 
-      setAuthState({
-        user: newUser,
-        token: mockToken,
-        isLoading: false,
-        isAuthenticated: true,
-        kycStatus: newKYC,
+      return { success: false, error: 'Erro ao registar' };
+    } catch (error: any) {
+      console.error('❌ Registration error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao registar' 
+      };
+    }
+  }, []);
+
+  const verifyEmail = useCallback(async (email: string, token: string) => {
+    try {
+      console.log('📧 Verifying email...');
+      const result = await trpcClient.auth.verifyEmail.mutate({ email, token });
+
+      if (result.success) {
+        console.log('✅ Email verified');
+        return { success: true, message: result.message };
+      }
+
+      return { success: false, error: 'Erro ao verificar e-mail' };
+    } catch (error: any) {
+      console.error('❌ Email verification error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao verificar e-mail' 
+      };
+    }
+  }, []);
+
+  const resendVerification = useCallback(async (email: string) => {
+    try {
+      console.log('📧 Resending verification...');
+      const result = await trpcClient.auth.resendVerification.mutate({ email });
+
+      if (result.success) {
+        console.log('✅ Verification email resent');
+        return { success: true, message: result.message };
+      }
+
+      return { success: false, error: 'Erro ao reenviar verificação' };
+    } catch (error: any) {
+      console.error('❌ Resend verification error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao reenviar verificação' 
+      };
+    }
+  }, []);
+
+  const recoverPassword = useCallback(async (email: string) => {
+    try {
+      console.log('🔑 Requesting password recovery...');
+      const result = await trpcClient.auth.recover.mutate({ email });
+
+      if (result.success) {
+        console.log('✅ Recovery email sent');
+        return { success: true, message: result.message };
+      }
+
+      return { success: false, error: 'Erro ao recuperar senha' };
+    } catch (error: any) {
+      console.error('❌ Password recovery error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao recuperar senha' 
+      };
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string, token: string, newPassword: string) => {
+    try {
+      console.log('🔑 Resetting password...');
+      const result = await trpcClient.auth.resetPassword.mutate({ 
+        email, 
+        token, 
+        newPassword 
       });
 
-      return { success: true };
-    } catch (error) {
-      console.error('Register error:', error);
-      return { success: false, error: 'Erro ao registar' };
+      if (result.success) {
+        console.log('✅ Password reset successful');
+        return { success: true, message: result.message };
+      }
+
+      return { success: false, error: 'Erro ao redefinir senha' };
+    } catch (error: any) {
+      console.error('❌ Password reset error:', error);
+      return { 
+        success: false, 
+        error: error?.message || 'Erro ao redefinir senha' 
+      };
     }
   }, []);
+
+  const refreshTokens = useCallback(async () => {
+    try {
+      const currentRefreshToken = authState.refreshToken;
+      if (!currentRefreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      console.log('🔄 Refreshing tokens...');
+      const result = await trpcClient.auth.refresh.mutate({ 
+        refreshToken: currentRefreshToken 
+      });
+
+      if (result.success && result.data) {
+        const { accessToken, refreshToken } = result.data;
+
+        await AsyncStorage.setItem('access_token', accessToken);
+        await AsyncStorage.setItem('refresh_token', refreshToken);
+
+        setAuthState(prev => ({
+          ...prev,
+          accessToken,
+          refreshToken,
+        }));
+
+        console.log('✅ Tokens refreshed');
+        return { success: true };
+      }
+
+      return { success: false };
+    } catch (error: any) {
+      console.error('❌ Token refresh error:', error);
+      await logout();
+      return { success: false };
+    }
+  }, [authState.refreshToken]);
 
   const logout = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem('auth_token');
+      if (authState.refreshToken) {
+        await trpcClient.auth.logout.mutate({ 
+          refreshToken: authState.refreshToken 
+        });
+      }
+
+      await AsyncStorage.removeItem('access_token');
+      await AsyncStorage.removeItem('refresh_token');
       await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('kyc_status');
+      
       setAuthState({
         user: null,
-        token: null,
+        accessToken: null,
+        refreshToken: null,
         isLoading: false,
         isAuthenticated: false,
-        kycStatus: null,
       });
+
+      console.log('🚪 Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
-  }, []);
+  }, [authState.refreshToken]);
 
-  const updateKYCStatus = useCallback(async (kycData: KYCData) => {
+  const refreshUserData = useCallback(async () => {
     try {
-      await AsyncStorage.setItem('kyc_status', JSON.stringify(kycData));
-      setAuthState(prev => ({
-        ...prev,
-        kycStatus: kycData,
-      }));
-      return { success: true };
+      if (!authState.isAuthenticated) return;
+
+      const meData = await trpcClient.auth.me.query();
+      if (meData.success) {
+        const updatedUser = meData.data;
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        setAuthState(prev => ({
+          ...prev,
+          user: updatedUser as User,
+        }));
+      }
     } catch (error) {
-      console.error('Update KYC error:', error);
-      return { success: false, error: 'Erro ao atualizar status KYC' };
+      console.error('Error refreshing user data:', error);
     }
-  }, []);
+  }, [authState.isAuthenticated]);
 
   return useMemo(() => ({
     ...authState,
     login,
     register,
+    verifyEmail,
+    resendVerification,
+    recoverPassword,
+    resetPassword,
     logout,
-    updateKYCStatus,
-  }), [authState, login, register, logout, updateKYCStatus]);
+    refreshTokens,
+    refreshUserData,
+  }), [
+    authState, 
+    login, 
+    register, 
+    verifyEmail,
+    resendVerification,
+    recoverPassword,
+    resetPassword,
+    logout,
+    refreshTokens,
+    refreshUserData,
+  ]);
 });
