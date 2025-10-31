@@ -6,7 +6,34 @@ import { createContext } from "./trpc/create-context";
 
 const app = new Hono();
 
-app.use("*", cors());
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 86400,
+  })
+);
+
+app.onError((err, c) => {
+  console.error("❌ Hono Error:", err);
+  return c.json(
+    {
+      error: {
+        message: err.message || "Internal server error",
+        code: "INTERNAL_SERVER_ERROR",
+      },
+    },
+    500
+  );
+});
+
+app.use("/api/trpc/*", async (c, next) => {
+  console.log(`📨 Request: ${c.req.method} ${c.req.url}`);
+  await next();
+});
 
 app.use(
   "/api/trpc/*",

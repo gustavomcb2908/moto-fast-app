@@ -184,13 +184,6 @@ export default function OnboardingScreen() {
   const handleRegister = async () => {
     setLoading(true);
     try {
-      const [idDocumentBase64, driverLicenseBase64, addressProofBase64, selfieBase64] = await Promise.all([
-        convertImageToBase64(formData.idDocument),
-        convertImageToBase64(formData.drivingLicense),
-        convertImageToBase64(formData.addressProof),
-        convertImageToBase64(formData.selfie),
-      ]);
-
       const payload: any = {
         name: formData.name,
         email: formData.email,
@@ -199,12 +192,6 @@ export default function OnboardingScreen() {
         hasOwnMotorcycle: formData.hasOwnMotorcycle,
         vehicleId: formData.hasOwnMotorcycle ? undefined : formData.vehicleId,
         accept_terms: formData.acceptTerms,
-        documents: {
-          id_document: idDocumentBase64,
-          driver_license: driverLicenseBase64,
-          proof_of_address: addressProofBase64,
-          selfie: selfieBase64,
-        },
       };
 
       const result = await register(payload);

@@ -16,16 +16,11 @@ export const registerProcedure = publicProcedure
     phone: z.string().min(9, 'Telefone inválido'),
     password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
     vehicleId: z.string().optional(),
-    documents: z.object({
-      id_document: z.string().optional(),
-      driver_license: z.string().optional(),
-      proof_of_address: z.string().optional(),
-      selfie: z.string().optional(),
-    }).optional(),
     accept_terms: z.boolean().refine(val => val === true, 'Deve aceitar os termos'),
   }))
   .mutation(async ({ input }) => {
-    console.log('📝 Registration request:', { email: input.email, name: input.name });
+    const inputSize = Buffer.byteLength(JSON.stringify(input), 'utf8');
+    console.log('📝 Registration request:', { email: input.email, name: input.name, inputSize });
 
     const existingUser = await db.getUserByEmail(input.email);
     if (existingUser) {
@@ -44,7 +39,7 @@ export const registerProcedure = publicProcedure
       password_hash: passwordHash,
       email_verified: false,
       kyc_status: 'pending',
-      documents: input.documents || {},
+      documents: {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
