@@ -2,8 +2,15 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpLink } from "@trpc/client";
 import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
+import { Platform } from "react-native";
 
 export const trpc = createTRPCReact<AppRouter>();
+
+const normalizeUrl = (url: string) => {
+  if (!url) return url;
+  if (url.startsWith("exp://") || url.startsWith("file://")) return "";
+  return url.replace(/\/$/, "");
+};
 
 const getBaseUrl = () => {
   const envCandidates = [
@@ -11,14 +18,15 @@ const getBaseUrl = () => {
     process.env.EXPO_PUBLIC_RORK_API_BASE_URL,
   ].filter(Boolean) as string[];
 
-  if (envCandidates.length > 0) {
-    return envCandidates[0] as string;
+  const envUrl = normalizeUrl(envCandidates[0] ?? "");
+  if (envUrl) return envUrl;
+
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.origin) {
+    return normalizeUrl(window.location.origin);
   }
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
+
   throw new Error(
-    "No base url found. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL"
+    "Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL"
   );
 };
 
@@ -30,14 +38,17 @@ export const trpcClient = trpc.createClient({
       fetch(url, options) {
         return fetch(url, options).then(async (res) => {
           try {
-            const ct = res.headers.get('content-type') ?? '';
-            if (!ct.includes('application/json')) {
-              const clone = res.clone();
-              const text = await clone.text();
-              console.log('tRPC non-JSON response', { url: String(url), status: res.status, text: text.slice(0, 200) });
+            const ct = res.headers.get("content-type") ?? "";
+            if (!ct.includes("application/json")) {
+              const text = await res.clone().text();
+              console.log("tRPC non-JSON response", {
+                url: String(url),
+                status: res.status,
+                text: text.slice(0, 300),
+              });
             }
           } catch (e) {
-            console.log('tRPC fetch inspector error', e);
+            console.log("tRPC fetch inspector error", e);
           }
           return res;
         });

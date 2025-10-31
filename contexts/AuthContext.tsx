@@ -139,9 +139,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       return { success: false, error: 'Erro ao registar' };
     } catch (error: any) {
       console.error('❌ Registration error:', error);
+      const friendly =
+        typeof error?.message === 'string' && error.message.includes('JSON Parse error')
+          ? 'Falha ao comunicar com o servidor. Verifique a URL da API e sua conexão.'
+          : (error?.message || 'Erro ao registar');
       return { 
         success: false, 
-        error: error?.message || 'Erro ao registar' 
+        error: friendly 
       };
     }
   }, []);
