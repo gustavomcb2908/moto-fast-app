@@ -6,14 +6,16 @@ import Colors from '@/constants/colors';
 import { mockOrders } from '@/constants/mockData';
 import { Navigation, MapPin } from 'lucide-react-native';
 
-const MapComponents = Platform.select({
-  web: null,
-  default: () => require('react-native-maps'),
-});
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
 
-const MapView = MapComponents ? MapComponents().default : null;
-const Marker = MapComponents ? MapComponents().Marker : null;
-const PROVIDER_GOOGLE = MapComponents ? MapComponents().PROVIDER_GOOGLE : null;
+if (Platform.OS !== 'web') {
+  const MapComponents = require('react-native-maps');
+  MapView = MapComponents.default;
+  Marker = MapComponents.Marker;
+  PROVIDER_GOOGLE = MapComponents.PROVIDER_GOOGLE;
+}
 
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
