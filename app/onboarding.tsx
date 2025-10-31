@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,18 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import { useCameraPermissions } from 'expo-camera';
+import * as WebBrowser from 'expo-web-browser';
+import { API_CONFIG } from '@/constants/apiEndpoints';
 import {
-  User,
+  User as UserIcon,
   Mail,
   Phone,
   Lock,
@@ -27,6 +31,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Camera,
+  ShieldCheck,
 } from 'lucide-react-native';
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -47,120 +52,153 @@ export default function OnboardingScreen() {
     addressProof: null as string | null,
     selfie: null as string | null,
     vehicleId: 'v123',
+    acceptTerms: false,
   });
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
+  const emailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email), [formData.email]);
+  const passwordStrength = useMemo(() => {
+    const p = formData.password;
+    const strong = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}/.test(p);
+    const medium = /(?=.*[a-z])(?=.*\d).{6,}/.test(p);
+    return strong ? 'forte' : medium ? 'média' : 'fraca';
+  }, [formData.password]);
+
   const pickImage = async (field: 'idDocument' | 'drivingLicense' | 'addressProof') => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       setFormData((prev) => ({ ...prev, [field]: result.assets[0].uri }));
+    }
+  };
+
+  const takeSelfie = async () => {
+    if (!cameraPermission?.granted) {
+      const { status } = await requestCameraPermission();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permissão necessária',
+          'Precisamos de acesso à câmara para tirar a selfie.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Abrir definições', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.85,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [1, 1],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
     }
   };
 
   const handleNext = () => {
     if (currentStep === 1) {
       if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos');
+        Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
+        return;
+      }
+      if (!emailValid) {
+        Alert.alert('Erro', 'E-mail inválido.');
         return;
       }
       if (formData.password !== formData.confirmPassword) {
-        Alert.alert('Erro', 'As senhas não coincidem');
+        Alert.alert('Erro', 'As senhas não coincidem.');
         return;
       }
-      if (formData.password.length < 6) {
-        Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}/.test(formData.password)) {
+        Alert.alert('Senha fraca', 'A senha deve ter 8+ caracteres, com maiúscula, minúscula e número.');
         return;
       }
     }
 
     if (currentStep === 2) {
       if (!formData.idDocument || !formData.drivingLicense || !formData.addressProof) {
-        Alert.alert('Erro', 'Por favor, carregue todos os documentos');
+        Alert.alert('Erro', 'Carregue todos os documentos.');
         return;
       }
     }
 
     if (currentStep === 3) {
       if (!formData.selfie) {
-        Alert.alert('Erro', 'Por favor, tire uma selfie para verificação');
+        Alert.alert('Erro', 'Tire uma selfie para verificação.');
         return;
       }
     }
 
-    if (currentStep < 5) {
-      setCurrentStep((prev) => (prev + 1) as Step);
-    } else {
+    if (currentStep === 5) {
+      if (!formData.acceptTerms) {
+        Alert.alert('Contrato', 'É necessário aceitar os termos para concluir.');
+        return;
+      }
       handleRegister();
+      return;
     }
+
+    setCurrentStep((prev) => (prev + 1) as Step);
+    setTimeout(() => {
+      // noop: smooth UX after step change
+    }, 0);
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as Step);
-    }
+    if (currentStep > 1) setCurrentStep((prev) => (prev - 1) as Step);
   };
 
   const handleRegister = async () => {
     setLoading(true);
-    const result = await register(formData);
+    const payload: any = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      vehicleId: formData.vehicleId,
+      accept_terms: formData.acceptTerms,
+      documents: {
+        id_document: formData.idDocument ?? undefined,
+        driver_license: formData.drivingLicense ?? undefined,
+        proof_of_address: formData.addressProof ?? undefined,
+        selfie: formData.selfie ?? undefined,
+      },
+    };
+    const result = await register(payload);
     setLoading(false);
 
     if (result.success) {
-      router.replace('/(tabs)');
+      Alert.alert('Conta criada', 'Verifique seu e-mail para ativar a conta.');
+      router.replace('/login');
     } else {
-      alert(result.error || 'Erro ao registar');
-    }
-  };
-
-  const takeSelfie = async () => {
-    if (!cameraPermission) {
-      await requestCameraPermission();
-      return;
-    }
-
-    if (!cameraPermission.granted) {
-      Alert.alert(
-        'Permissão necessária',
-        'Precisamos de acesso à câmera para tirar a selfie',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Permitir', onPress: requestCameraPermission },
-        ]
-      );
-      return;
-    }
-
-    pickImageFromGallery();
-  };
-
-  const pickImageFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-      aspect: [1, 1],
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
+      Alert.alert('Erro', result.error || 'Erro ao registar');
     }
   };
 
   const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
+    <View style={styles.stepIndicator} testID="register-steps">
       {[1, 2, 3, 4, 5].map((step) => (
         <View
           key={step}
-          style={[
-            styles.stepDot,
-            currentStep >= step ? styles.stepDotActive : styles.stepDotInactive,
-          ]}
+          style={[styles.stepDot, currentStep >= step ? styles.stepDotActive : styles.stepDotInactive]}
         />
       ))}
     </View>
@@ -172,12 +210,13 @@ export default function OnboardingScreen() {
       <Text style={styles.stepSubtitle}>Preencha as suas informações</Text>
 
       <View style={styles.inputContainer}>
-        <User size={20} color={Colors.textSecondary} />
+        <UserIcon size={20} color={Colors.textSecondary} />
         <TextInput
           style={styles.input}
           placeholder="Nome completo"
           value={formData.name}
           onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
+          testID="name-input"
         />
       </View>
 
@@ -190,8 +229,12 @@ export default function OnboardingScreen() {
           onChangeText={(text) => setFormData((prev) => ({ ...prev, email: text }))}
           keyboardType="email-address"
           autoCapitalize="none"
+          testID="reg-email"
         />
       </View>
+      {!!formData.email && !emailValid && (
+        <Text style={styles.validationText}>E-mail inválido</Text>
+      )}
 
       <View style={styles.inputContainer}>
         <Phone size={20} color={Colors.textSecondary} />
@@ -201,6 +244,7 @@ export default function OnboardingScreen() {
           value={formData.phone}
           onChangeText={(text) => setFormData((prev) => ({ ...prev, phone: text }))}
           keyboardType="phone-pad"
+          testID="reg-phone"
         />
       </View>
 
@@ -212,8 +256,10 @@ export default function OnboardingScreen() {
           value={formData.password}
           onChangeText={(text) => setFormData((prev) => ({ ...prev, password: text }))}
           secureTextEntry
+          testID="reg-password"
         />
       </View>
+      <Text style={styles.passwordHint}>Força da senha: {passwordStrength}</Text>
 
       <View style={styles.inputContainer}>
         <Lock size={20} color={Colors.textSecondary} />
@@ -223,6 +269,7 @@ export default function OnboardingScreen() {
           value={formData.confirmPassword}
           onChangeText={(text) => setFormData((prev) => ({ ...prev, confirmPassword: text }))}
           secureTextEntry
+          testID="reg-password-confirm"
         />
       </View>
     </View>
@@ -233,24 +280,18 @@ export default function OnboardingScreen() {
       <Text style={styles.stepTitle}>Documentos</Text>
       <Text style={styles.stepSubtitle}>Carregue os seus documentos</Text>
 
-      <TouchableOpacity
-        style={styles.uploadCard}
-        onPress={() => pickImage('idDocument')}
-      >
+      <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage('idDocument')} testID="doc-id">
         {formData.idDocument ? (
           <CheckCircle size={24} color={Colors.success} />
         ) : (
           <Upload size={24} color={Colors.primary} />
         )}
         <Text style={styles.uploadText}>
-          {formData.idDocument ? 'RG/BI Carregado' : 'Carregar RG/BI'}
+          {formData.idDocument ? 'CC/BI Carregado' : 'Carregar CC/BI'}
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.uploadCard}
-        onPress={() => pickImage('drivingLicense')}
-      >
+      <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage('drivingLicense')} testID="doc-license">
         {formData.drivingLicense ? (
           <CheckCircle size={24} color={Colors.success} />
         ) : (
@@ -261,19 +302,14 @@ export default function OnboardingScreen() {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.uploadCard}
-        onPress={() => pickImage('addressProof')}
-      >
+      <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage('addressProof')} testID="doc-address">
         {formData.addressProof ? (
           <CheckCircle size={24} color={Colors.success} />
         ) : (
           <Upload size={24} color={Colors.primary} />
         )}
         <Text style={styles.uploadText}>
-          {formData.addressProof
-            ? 'Comprovativo Carregado'
-            : 'Carregar Comprovativo de Residência'}
+          {formData.addressProof ? 'Comprovativo Carregado' : 'Comprovativo de Residência'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -296,15 +332,12 @@ export default function OnboardingScreen() {
         </View>
       ) : (
         <View style={styles.selfieOptions}>
-          <TouchableOpacity style={styles.selfieButton} onPress={takeSelfie}>
+          <TouchableOpacity style={styles.selfieButton} onPress={takeSelfie} testID="selfie-camera">
             <Camera size={32} color={Colors.primary} />
             <Text style={styles.selfieButtonText}>Tirar Selfie</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.selfieButtonSecondary}
-            onPress={pickImageFromGallery}
-          >
+          <TouchableOpacity style={styles.selfieButtonSecondary} onPress={pickImageFromGallery} testID="selfie-gallery">
             <Upload size={24} color={Colors.textSecondary} />
             <Text style={styles.selfieButtonSecondaryText}>Escolher da Galeria</Text>
           </TouchableOpacity>
@@ -345,22 +378,25 @@ export default function OnboardingScreen() {
       <Text style={styles.stepTitle}>Contrato</Text>
       <Text style={styles.stepSubtitle}>Revise e aceite os termos</Text>
 
-      <ScrollView style={styles.contractScroll}>
-        <Text style={styles.contractText}>
-          CONTRATO DE PRESTAÇÃO DE SERVIÇOS{'\n\n'}
-          1. Este contrato estabelece os termos e condições entre o estafeta e a Moto Fast.{'\n\n'}
-          2. O estafeta se compromete a realizar entregas de forma responsável e segura.{'\n\n'}
-          3. O pagamento será realizado semanalmente conforme as entregas realizadas.{'\n\n'}
-          4. O aluguer do veículo tem custo mensal fixo de €120.{'\n\n'}
-          5. O estafeta é responsável pela manutenção básica do veículo.
-        </Text>
-      </ScrollView>
+      <TouchableOpacity
+        style={styles.contractOpen}
+        onPress={() => WebBrowser.openBrowserAsync(`${API_CONFIG.AUTH_API_URL}/contracts/latest`)}
+        testID="open-contract"
+      >
+        <ShieldCheck size={20} color={Colors.primary} />
+        <Text style={styles.contractOpenText}>Abrir contrato (PDF)</Text>
+      </TouchableOpacity>
 
       <View style={styles.acceptContainer}>
-        <CheckCircle size={20} color={Colors.success} />
-        <Text style={styles.acceptText}>
-          Li e concordo com os termos do contrato
-        </Text>
+        <TouchableOpacity
+          onPress={() => setFormData((p) => ({ ...p, acceptTerms: !p.acceptTerms }))}
+          style={[styles.checkbox, formData.acceptTerms && styles.checkboxChecked]}
+          accessibilityRole="checkbox"
+          testID="accept-terms"
+        >
+          {formData.acceptTerms && <CheckCircle size={18} color={Colors.surface} />}
+        </TouchableOpacity>
+        <Text style={styles.acceptText}>Li e concordo com os termos do contrato</Text>
       </View>
     </View>
   );
@@ -383,53 +419,57 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Registo</Text>
-          {renderStepIndicator()}
-        </View>
-
-        {renderStep()}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        {currentStep > 1 && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <ArrowLeft size={20} color={Colors.text} />
-            <Text style={styles.backButtonText}>Voltar</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={[styles.nextButton, currentStep === 1 && styles.nextButtonFull]}
-          onPress={handleNext}
-          disabled={loading}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {loading ? (
-            <ActivityIndicator color={Colors.surface} />
-          ) : (
-            <>
-              <Text style={styles.nextButtonText}>
-                {currentStep === 5 ? 'Finalizar' : 'Próximo'}
-              </Text>
-              <ArrowRight size={20} color={Colors.surface} />
-            </>
+          <View style={styles.header}>
+            <Text style={styles.title}>Registo</Text>
+            {renderStepIndicator()}
+          </View>
+
+          {renderStep()}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          {currentStep > 1 && (
+            <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="step-back">
+              <ArrowLeft size={20} color={Colors.text} />
+              <Text style={styles.backButtonText}>Voltar</Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+          <TouchableOpacity
+            style={[styles.nextButton, currentStep === 1 && styles.nextButtonFull]}
+            onPress={handleNext}
+            disabled={loading}
+            testID="step-next"
+          >
+            {loading ? (
+              <ActivityIndicator color={Colors.surface} />
+            ) : (
+              <>
+                <Text style={styles.nextButtonText}>
+                  {currentStep === 5 ? 'Concluir Cadastro' : 'Próximo'}
+                </Text>
+                <ArrowRight size={20} color={Colors.surface} />
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Colors.background },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -494,6 +534,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
   },
+  validationText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 8,
+  },
   uploadCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -543,24 +589,56 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
   },
+  contractOpen: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 12,
+  },
+  contractOpenText: {
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 6,
+    marginLeft: 4,
+  },
   contractScroll: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 16,
     maxHeight: 300,
   },
-  contractText: {
-    fontSize: 14,
-    color: Colors.text,
-    lineHeight: 22,
-  },
   acceptContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 16,
-    backgroundColor: Colors.success + '10',
+    padding: 12,
+    backgroundColor: Colors.surfaceAlt,
     borderRadius: 12,
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   acceptText: {
     flex: 1,

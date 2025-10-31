@@ -1,18 +1,47 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View } from 'react-native';
-import { AuthProvider } from "@/contexts/AuthContext";
+import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { ThemedDialogProvider } from "@/components/ThemedDialog";
+import { LinearGradient } from 'expo-linear-gradient';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+function AppSplashOverlay() {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    Animated.loop(
+      Animated.timing(rotate, { toValue: 1, duration: 1200, easing: Easing.linear, useNativeDriver: true })
+    ).start();
+  }, [opacity, rotate]);
+
+  const rotateDeg = useMemo(() => rotate.interpolate({ inputRange: [0,1], outputRange: ['0deg','360deg'] }), [rotate]);
+
+  return (
+    <LinearGradient colors={["#00C853", "#003300"]} style={StyleSheet.absoluteFillObject}>
+      <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', opacity }} testID="splash-overlay">
+        <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' as const, letterSpacing: 0.5 }}>Moto Fast</Text>
+        <Animated.View style={{ position: 'absolute', bottom: 80, transform: [{ rotate: rotateDeg }] }}>
+          <View style={{ width: 54, height: 54, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ position: 'absolute', top: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' }} />
+            <View style={{ position: 'absolute', left: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#B2FF59' }} />
+            <View style={{ position: 'absolute', right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#E8F5E9' }} />
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </LinearGradient>
+  );
+}
 
 function RootLayoutNav() {
   const { colors } = useTheme();
@@ -31,9 +60,19 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = useState(true);
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    const t = setTimeout(() => {
+      setShowSplash(false);
+      if (!isAuthenticated) {
+        router.replace('/welcome');
+      }
+      SplashScreen.hideAsync();
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [isAuthenticated]);
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
@@ -42,7 +81,10 @@ export default function RootLayout() {
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <ThemedDialogProvider>
-                <RootLayoutNav />
+                <View style={{ flex: 1 }}>
+                  <RootLayoutNav />
+                  {showSplash && <AppSplashOverlay />}
+                </View>
               </ThemedDialogProvider>
             </GestureHandlerRootView>
           </AuthProvider>

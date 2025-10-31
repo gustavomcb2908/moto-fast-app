@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,31 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
-import { Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const { login } = useAuth();
+
+  const isEmailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), [email]);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert('Por favor, preencha todos os campos');
+      Alert.alert('Campos obrigatórios', 'Por favor, preencha email e senha.');
+      return;
+    }
+    if (!isEmailValid) {
+      Alert.alert('E-mail inválido', 'Insira um e-mail válido.');
       return;
     }
 
@@ -35,15 +44,17 @@ export default function LoginScreen() {
     if (result.success) {
       router.replace('/(tabs)');
     } else {
-      alert(result.error || 'Erro ao fazer login');
+      Alert.alert('Não foi possível entrar', result.error || 'Credenciais incorretas.');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        testID="login-screen"
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -53,7 +64,7 @@ export default function LoginScreen() {
           colors={[Colors.gradient.start, Colors.gradient.end]}
           style={styles.header}
         >
-          <Text style={styles.logo}>MOTOFAST</Text>
+          <Text style={styles.logo} testID="login-logo">MOTOFAST</Text>
           <Text style={styles.subtitle}>ALUGUER DE MOTOS</Text>
         </LinearGradient>
 
@@ -71,8 +82,12 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              testID="email-input"
             />
           </View>
+          {!!email && !isEmailValid && (
+            <Text style={styles.validationText} testID="email-error">E-mail inválido</Text>
+          )}
 
           <View style={styles.inputContainer}>
             <View style={styles.inputIcon}>
@@ -84,15 +99,20 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.textLight}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              testID="password-input"
             />
+            <TouchableOpacity onPress={() => setShowPassword((s) => !s)} accessibilityRole="button" testID="toggle-password">
+              {showPassword ? <EyeOff size={20} color={Colors.textSecondary} /> : <Eye size={20} color={Colors.textSecondary} />}
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
             style={styles.forgotButton}
             onPress={() => router.push('/forgot-password')}
+            testID="forgot-password"
           >
             <Text style={styles.forgotText}>Esqueceu a senha?</Text>
           </TouchableOpacity>
@@ -102,6 +122,7 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.8}
+            testID="login-button"
           >
             {loading ? (
               <ActivityIndicator color={Colors.surface} />
@@ -122,6 +143,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.registerButton}
             onPress={() => router.push('/onboarding')}
+            testID="go-register"
           >
             <Text style={styles.registerText}>
               Não tem conta? <Text style={styles.registerTextBold}>Criar Conta</Text>
@@ -129,11 +151,13 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: Colors.background },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -185,6 +209,12 @@ const styles = StyleSheet.create({
     height: 56,
     fontSize: 16,
     color: Colors.text,
+  },
+  validationText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 8,
   },
   forgotButton: {
     alignSelf: 'flex-end',
