@@ -102,19 +102,17 @@ export default function SupportScreen() {
         style={[styles.tab, activeTab === 'faq' && styles.tabActive]}
         onPress={() => setActiveTab('faq')}
         activeOpacity={0.7}
+        testID="support-tab-faq"
       >
-        <Text style={[styles.tabText, activeTab === 'faq' && styles.tabTextActive]}>
-          FAQ
-        </Text>
+        <Text style={[styles.tabText, activeTab === 'faq' && styles.tabTextActive]}>FAQ</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
         onPress={() => setActiveTab('chat')}
         activeOpacity={0.7}
+        testID="support-tab-chat"
       >
-        <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
-          Chat
-        </Text>
+        <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>Chat</Text>
       </TouchableOpacity>
     </View>
   );
@@ -193,6 +191,7 @@ export default function SupportScreen() {
         showsHorizontalScrollIndicator={false}
         style={styles.categoriesScroll}
         contentContainerStyle={styles.categoriesContent}
+        testID="faq-categories-scroll"
       >
         {categories.map((category) => (
           <TouchableOpacity
@@ -234,8 +233,9 @@ export default function SupportScreen() {
   const renderChatTab = () => (
     <KeyboardAvoidingView
       style={styles.chatContainer}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      enabled
     >
       <FlatList
         ref={scrollViewRef}
@@ -245,6 +245,7 @@ export default function SupportScreen() {
         contentContainerStyle={styles.messagesList}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       />
 
       <View style={styles.inputContainer}>
@@ -256,6 +257,7 @@ export default function SupportScreen() {
           onChangeText={setMessageText}
           multiline
           maxLength={500}
+          onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
         />
         <TouchableOpacity
           style={[styles.sendButton, !messageText.trim() && styles.sendButtonDisabled]}
@@ -327,23 +329,30 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   categoriesScroll: {
-    maxHeight: 50,
+    maxHeight: 56,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 10,
+    alignItems: 'center',
   },
   categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: Colors.background,
     borderWidth: 1,
     borderColor: Colors.border,
+    minHeight: 38,
   },
   categoryChipActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
   },
   categoryChipText: {
     fontSize: 14,

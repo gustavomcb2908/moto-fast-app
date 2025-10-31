@@ -133,20 +133,8 @@ export default function ProfileScreen() {
         {renderMenuItem(
           <HelpCircle size={24} color={Colors.text} />,
           'Ajuda e Suporte',
-          'FAQ e chat de suporte',
+          'Centro de ajuda e chat',
           () => router.push('/profile/support')
-        )}
-        {renderMenuItem(
-          <HelpCircle size={24} color={Colors.text} />,
-          'Perguntas Frequentes',
-          'Veja as dúvidas mais comuns',
-          () => router.push('/profile/faq')
-        )}
-        {renderMenuItem(
-          <HelpCircle size={24} color={Colors.text} />,
-          'Chat de Suporte',
-          'Fale com nossa equipa',
-          () => router.push('/profile/support-chat')
         )}
       </View>
 

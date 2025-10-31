@@ -15,8 +15,7 @@ export default function ProfileLayout() {
       <Stack.Screen name="settings" options={{ title: 'Definições' }} />
       <Stack.Screen name="notifications" options={{ title: 'Notificações' }} />
       <Stack.Screen name="support" options={{ title: 'Suporte e Ajuda' }} />
-      <Stack.Screen name="faq" options={{ title: 'Perguntas Frequentes' }} />
-      <Stack.Screen name="support-chat" options={{ title: 'Chat de Suporte' }} />
+
     </Stack>
   );
 }
