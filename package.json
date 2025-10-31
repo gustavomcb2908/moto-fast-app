@@ -9,7 +9,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "^2.0.85",
+    "@ai-sdk/react": "^2.0.86",
     "@expo/vector-icons": "^15.0.3",
     "@hono/trpc-server": "^0.4.0",
     "@nkzw/create-context-hook": "^1.1.0",
@@ -58,6 +58,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0",
     "superjson": "^2.2.5",
     "yup": "^1.7.1",
     "zod": "^4.1.12",

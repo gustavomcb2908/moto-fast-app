@@ -24,9 +24,15 @@ export const trpcClient = trpc.createClient({
       transformer: superjson,
       fetch(url, options) {
         return fetch(url, options).then(async (res) => {
-          if (!res.headers.get('content-type')?.includes('application/json')) {
-            const text = await res.text();
-            console.log('tRPC non-JSON response', { status: res.status, text: text.slice(0, 120) });
+          try {
+            const ct = res.headers.get('content-type') ?? '';
+            if (!ct.includes('application/json')) {
+              const clone = res.clone();
+              const text = await clone.text();
+              console.log('tRPC non-JSON response', { status: res.status, text: text.slice(0, 120) });
+            }
+          } catch (e) {
+            console.log('tRPC fetch inspector error', e);
           }
           return res;
         });

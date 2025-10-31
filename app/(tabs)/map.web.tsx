@@ -41,10 +41,10 @@ export default function MapScreen() {
       <View style={styles.container}>
         <View style={styles.webPlaceholder}>
           <MapPin size={64} color={colors.textSecondary} />
-          <Text style={styles.webText}>Visualização do Mapa</Text>
+          <Text style={styles.webText}>Mapa (OpenStreetMap)</Text>
           <Text style={styles.webSubtext}>
-            O mapa está disponível apenas no aplicativo móvel.
-            Use o app no iOS ou Android para rastreamento em tempo real.
+            Para a experiência completa com Leaflet + OpenStreetMap, use o app no iOS ou Android.
+            Nesta pré-visualização web, o mapa interativo não é renderizado.
           </Text>
           <View style={styles.webStats}>
             <View style={styles.webStatCard}>
