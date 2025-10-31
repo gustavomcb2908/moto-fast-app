@@ -14,9 +14,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, ThemeChoice } from '@/contexts/ThemeContext';
 import { Bell, Moon, Lock, Shield, ChevronRight, SunMedium, Cog } from 'lucide-react-native';
+import { useThemedDialog } from '@/components/ThemedDialog';
 
 export default function SettingsScreen() {
   const { colors, choice, setChoice } = useTheme();
+  const dialog = useThemedDialog();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [pushNotifications, setPushNotifications] = useState<boolean>(true);
@@ -41,7 +43,7 @@ export default function SettingsScreen() {
     setChoice(value);
     await AsyncStorage.setItem('@motofast-theme', value);
     console.log('Theme changed:', value);
-    Alert.alert('Tema', 'Tema atualizado com sucesso');
+    dialog.alert('Tema', 'Tema atualizado com sucesso');
   };
 
   const handleChangePassword = async () => {
@@ -158,10 +160,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.themePreview}>
-          <View style={styles.previewCardLight} />
-          <View style={styles.previewCardDark} />
-        </View>
+
       </View>
 
       <View style={styles.section}>
@@ -179,7 +178,7 @@ export default function SettingsScreen() {
           'Autenticação em Dois Fatores',
           'Adicionar camada extra de segurança (Em breve)',
           false,
-          () => Alert.alert('Em Breve', 'Funcionalidade em desenvolvimento')
+          () => dialog.alert('Em Breve', 'Funcionalidade em desenvolvimento')
         )}
       </View>
 
@@ -249,7 +248,7 @@ export default function SettingsScreen() {
                 style={[styles.confirmButton, isChangingPassword && styles.confirmButtonDisabled]}
                 onPress={handleChangePassword}
                 disabled={isChangingPassword}
-              >
+>
                 {isChangingPassword ? (
                   <ActivityIndicator size="small" color={colors.surface} />
                 ) : (

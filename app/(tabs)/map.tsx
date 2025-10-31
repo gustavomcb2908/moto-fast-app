@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { mockOrders, Order } from '@/constants/mockData';
 import { MapPin } from 'lucide-react-native';
 
@@ -13,7 +13,12 @@ type OrderWithCoordinates = Order & {
   };
 };
 
+import { usePermissionManager } from '@/utils/permissions';
+
 export default function MapScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { requestLocation } = usePermissionManager();
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -30,8 +35,8 @@ export default function MapScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+        const perm = await requestLocation();
+        if (!perm.granted) {
           setErrorMsg('Permissão de localização negada');
           return;
         }
@@ -45,7 +50,7 @@ export default function MapScreen() {
         setErrorMsg('Erro ao obter localização. Tente novamente.');
       }
     })();
-  }, []);
+  }, [requestLocation]);
 
   if (errorMsg) {
     return (
@@ -54,12 +59,12 @@ export default function MapScreen() {
           options={{
             headerShown: true,
             title: 'Mapa',
-            headerStyle: { backgroundColor: Colors.surface },
-            headerTintColor: Colors.text,
+            headerStyle: { backgroundColor: colors.surface },
+            headerTintColor: colors.text,
           }}
         />
         <View style={styles.errorContainer}>
-          <MapPin size={48} color={Colors.textSecondary} />
+          <MapPin size={48} color={colors.textSecondary} />
           <Text style={styles.errorText}>{errorMsg}</Text>
           <Text style={styles.errorSubtext}>
             Ative a permissão de localização nas configurações
@@ -76,12 +81,12 @@ export default function MapScreen() {
           options={{
             headerShown: true,
             title: 'Mapa',
-            headerStyle: { backgroundColor: Colors.surface },
-            headerTintColor: Colors.text,
+            headerStyle: { backgroundColor: colors.surface },
+            headerTintColor: colors.text,
           }}
         />
         <View style={styles.loadingContainer}>
-          <MapPin size={48} color={Colors.primary} />
+          <MapPin size={48} color={colors.primary} />
           <Text style={styles.loadingText}>Obtendo localização...</Text>
         </View>
       </>
@@ -94,13 +99,13 @@ export default function MapScreen() {
         options={{
           headerShown: true,
           title: 'Mapa',
-          headerStyle: { backgroundColor: Colors.surface },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
         }}
       />
       <View style={styles.container}>
         <View style={styles.placeholderContainer}>
-          <MapPin size={64} color={Colors.textSecondary} />
+          <MapPin size={64} color={colors.textSecondary} />
           <Text style={styles.placeholderText}>
             {Platform.OS === 'web' 
               ? 'Mapa disponível apenas em dispositivos móveis'
@@ -119,21 +124,21 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   placeholderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   placeholderText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
   },
@@ -141,12 +146,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   loadingText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginTop: 16,
   },
   errorContainer: {
@@ -154,18 +159,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   errorText: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginTop: 16,
     textAlign: 'center',
   },
   errorSubtext: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -178,7 +183,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   statCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     shadowColor: '#000',
@@ -190,11 +195,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: colors.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
 });

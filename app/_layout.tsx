@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { trpc, trpcClient } from "@/lib/trpc";
+import { ThemedDialogProvider } from "@/components/ThemedDialog";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -40,7 +41,9 @@ export default function RootLayout() {
         <ThemeProvider>
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
-              <RootLayoutNav />
+              <ThemedDialogProvider>
+                <RootLayoutNav />
+              </ThemedDialogProvider>
             </GestureHandlerRootView>
           </AuthProvider>
         </ThemeProvider>

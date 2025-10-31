@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import * as Location from 'expo-location';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { mockOrders } from '@/constants/mockData';
 import { MapPin } from 'lucide-react-native';
 
 export default function MapScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
 
   useEffect(() => {
@@ -32,13 +34,13 @@ export default function MapScreen() {
         options={{
           headerShown: true,
           title: 'Mapa',
-          headerStyle: { backgroundColor: Colors.surface },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
         }}
       />
       <View style={styles.container}>
         <View style={styles.webPlaceholder}>
-          <MapPin size={64} color={Colors.textSecondary} />
+          <MapPin size={64} color={colors.textSecondary} />
           <Text style={styles.webText}>Visualização do Mapa</Text>
           <Text style={styles.webSubtext}>
             O mapa está disponível apenas no aplicativo móvel.
@@ -64,28 +66,28 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   webPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   webText: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginTop: 24,
     textAlign: 'center',
   },
   webSubtext: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 12,
     textAlign: 'center',
     lineHeight: 22,
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   webStatCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
     minWidth: 140,
@@ -105,11 +107,11 @@ const styles = StyleSheet.create({
   webStatNumber: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: Colors.primary,
+    color: colors.primary,
     marginBottom: 4,
   },
   webStatLabel: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   mockNotifications,
   Notification,
@@ -18,6 +18,8 @@ import {
 import { Trash2, CheckCheck } from 'lucide-react-native';
 
 export default function NotificationsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -86,7 +88,7 @@ export default function NotificationsScreen() {
         }}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Trash2 size={18} color={Colors.textSecondary} />
+        <Trash2 size={18} color={colors.textSecondary} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -110,7 +112,7 @@ export default function NotificationsScreen() {
           </Text>
           <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
             <View style={styles.markAllButton}>
-              <CheckCheck size={18} color={Colors.primary} />
+              <CheckCheck size={18} color={colors.primary} />
               <Text style={styles.markAllText}>Marcar todas como lidas</Text>
             </View>
           </TouchableOpacity>
@@ -129,7 +131,7 @@ export default function NotificationsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -138,10 +140,10 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -149,14 +151,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: colors.border,
   },
   headerText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   markAllButton: {
     flexDirection: 'row',
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
   markAllText: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.primary,
+    color: colors.primary,
   },
   list: {
     paddingHorizontal: 16,
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -185,15 +187,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   notificationUnread: {
-    backgroundColor: Colors.primary + '08',
+    backgroundColor: colors.primary + '08',
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: colors.primary,
   },
   notificationIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     flex: 1,
   },
   notificationTitleUnread: {
@@ -222,18 +224,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     marginLeft: 8,
   },
   notificationDescription: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 6,
   },
   notificationTime: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: colors.textLight,
   },
   deleteButton: {
     padding: 8,
@@ -255,12 +257,12 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 8,
   },
   emptyStateText: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },

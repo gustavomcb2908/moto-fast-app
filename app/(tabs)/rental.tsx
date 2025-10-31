@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { mockVehicle, mockInvoices, mockInspection } from '@/constants/mockData';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Car,
   FileText,
@@ -15,6 +15,8 @@ import {
 } from 'lucide-react-native';
 
 export default function RentalScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const nextInvoice = mockInvoices.find((inv) => inv.status === 'pending');
   const hasInspectionPending = mockInspection.status === 'pending';
 
@@ -40,7 +42,7 @@ export default function RentalScreen() {
           <Text style={[styles.badgeText, { color: badge.color }]}>{badge.text}</Text>
         </View>
       )}
-      <ChevronRight size={20} color={Colors.textSecondary} />
+      <ChevronRight size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -50,14 +52,14 @@ export default function RentalScreen() {
         options={{
           headerShown: true,
           title: 'Locadora',
-          headerStyle: { backgroundColor: Colors.surface },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
         }}
       />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.vehicleCard}>
           <View style={styles.vehicleHeader}>
-            <Car size={32} color={Colors.primary} />
+            <Car size={32} color={colors.primary} />
             <View style={styles.vehicleInfo}>
               <Text style={styles.vehiclePlate}>{mockVehicle.plate}</Text>
               <Text style={styles.vehicleModel}>{mockVehicle.model}</Text>
@@ -68,8 +70,8 @@ export default function RentalScreen() {
                 {
                   backgroundColor:
                     mockVehicle.rentalStatus === 'active'
-                      ? Colors.success + '15'
-                      : Colors.warning + '15',
+                      ? colors.success + '15'
+                      : colors.warning + '15',
                 },
               ]}
             >
@@ -78,7 +80,7 @@ export default function RentalScreen() {
                   styles.statusText,
                   {
                     color:
-                      mockVehicle.rentalStatus === 'active' ? Colors.success : Colors.warning,
+                      mockVehicle.rentalStatus === 'active' ? colors.success : colors.warning,
                   },
                 ]}
               >
@@ -108,10 +110,10 @@ export default function RentalScreen() {
             <Text style={styles.sectionTitle}>Atenção</Text>
             {nextInvoice && (
               <TouchableOpacity
-                style={[styles.alertCard, { backgroundColor: Colors.warning + '10' }]}
+                style={[styles.alertCard, { backgroundColor: colors.warning + '10' }]}
                 activeOpacity={0.7}
               >
-                <AlertTriangle size={20} color={Colors.warning} />
+                <AlertTriangle size={20} color={colors.warning} />
                 <View style={styles.alertContent}>
                   <Text style={styles.alertTitle}>Fatura Pendente</Text>
                   <Text style={styles.alertText}>
@@ -123,20 +125,20 @@ export default function RentalScreen() {
                     dias
                   </Text>
                 </View>
-                <ChevronRight size={20} color={Colors.warning} />
+                <ChevronRight size={20} color={colors.warning} />
               </TouchableOpacity>
             )}
             {hasInspectionPending && (
               <TouchableOpacity
-                style={[styles.alertCard, { backgroundColor: Colors.info + '10' }]}
+                style={[styles.alertCard, { backgroundColor: colors.info + '10' }]}
                 activeOpacity={0.7}
               >
-                <Camera size={20} color={Colors.info} />
+                <Camera size={20} color={colors.info} />
                 <View style={styles.alertContent}>
                   <Text style={styles.alertTitle}>Vistoria Pendente</Text>
                   <Text style={styles.alertText}>Submeter fotos do veículo</Text>
                 </View>
-                <ChevronRight size={20} color={Colors.info} />
+                <ChevronRight size={20} color={colors.info} />
               </TouchableOpacity>
             )}
           </View>
@@ -145,16 +147,16 @@ export default function RentalScreen() {
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Financeiro</Text>
           {renderMenuCard(
-            <FileText size={24} color={Colors.primary} />,
+            <FileText size={24} color={colors.primary} />,
             'Faturas',
             'Ver e pagar faturas',
             () => console.log('Navigate to invoices'),
             nextInvoice
-              ? { text: `€${nextInvoice.amount.toFixed(2)}`, color: Colors.warning }
+              ? { text: `€${nextInvoice.amount.toFixed(2)}`, color: colors.warning }
               : undefined
           )}
           {renderMenuCard(
-            <CreditCard size={24} color={Colors.success} />,
+            <CreditCard size={24} color={colors.success} />,
             'Métodos de Pagamento',
             'Gerir formas de pagamento',
             () => console.log('Navigate to payment methods')
@@ -164,22 +166,22 @@ export default function RentalScreen() {
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Veículo</Text>
           {renderMenuCard(
-            <Camera size={24} color={Colors.info} />,
+            <Camera size={24} color={colors.info} />,
             'Vistorias',
             'Submeter e ver vistorias',
             () => console.log('Navigate to inspections'),
             hasInspectionPending
-              ? { text: 'Pendente', color: Colors.warning }
+              ? { text: 'Pendente', color: colors.warning }
               : undefined
           )}
           {renderMenuCard(
-            <FileText size={24} color={Colors.text} />,
+            <FileText size={24} color={colors.text} />,
             'Documentos',
             'Contratos e documentação',
             () => console.log('Navigate to documents')
           )}
           {renderMenuCard(
-            <Calendar size={24} color={Colors.primary} />,
+            <Calendar size={24} color={colors.primary} />,
             'Gestão de Veículo',
             'Histórico e troca de veículo',
             () => console.log('Navigate to vehicle management')
@@ -189,11 +191,11 @@ export default function RentalScreen() {
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Suporte</Text>
           {renderMenuCard(
-            <MessageSquare size={24} color={Colors.primary} />,
+            <MessageSquare size={24} color={colors.primary} />,
             'Chat com Locadora',
             'Mensagens e suporte',
             () => console.log('Navigate to chat'),
-            { text: '1', color: Colors.error }
+            { text: '1', color: colors.error }
           )}
         </View>
       </ScrollView>
@@ -201,14 +203,14 @@ export default function RentalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   vehicleCard: {
     margin: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -228,11 +230,11 @@ const styles = StyleSheet.create({
   vehiclePlate: {
     fontSize: 20,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   vehicleModel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statusBadge: {
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.border,
     marginVertical: 16,
   },
   vehicleDetails: {
@@ -259,12 +261,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   detailValue: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   alertsSection: {
     marginHorizontal: 16,
@@ -273,7 +275,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 12,
   },
   alertCard: {
@@ -290,12 +292,12 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   alertText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   menuSection: {
     marginHorizontal: 16,
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
   menuCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
@@ -318,7 +320,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -329,12 +331,12 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   menuSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   badge: {
     paddingHorizontal: 10,

@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   User,
   Phone,
@@ -15,25 +15,22 @@ import {
   Edit3,
 } from 'lucide-react-native';
 
+import { useThemedDialog } from '@/components/ThemedDialog';
+
 export default function ProfileScreen() {
+  const { colors } = useTheme();
+  const dialog = useThemedDialog();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert(
-      'Terminar Sessão',
-      'Tem a certeza que deseja sair?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/login');
-          },
-        },
-      ]
-    );
+    (async () => {
+      const ok = await dialog.confirm('Terminar Sessão', 'Tem a certeza que deseja sair?');
+      if (ok) {
+        await logout();
+        router.replace('/login');
+      }
+    })();
   };
 
   const renderMenuItem = (
@@ -59,7 +56,7 @@ export default function ProfileScreen() {
           <Text style={styles.badgeText}>3</Text>
         </View>
       )}
-      <ChevronRight size={20} color={Colors.textSecondary} />
+      <ChevronRight size={20} color={colors.textSecondary} />
     </TouchableOpacity>
   );
 
@@ -68,14 +65,14 @@ export default function ProfileScreen() {
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-            <User size={40} color={Colors.surface} />
+            <User size={40} color={colors.surface} />
           </View>
           <TouchableOpacity
             style={styles.editAvatarButton}
             onPress={() => router.push('/profile/details')}
             activeOpacity={0.7}
           >
-            <Edit3 size={16} color={Colors.surface} />
+            <Edit3 size={16} color={colors.surface} />
           </TouchableOpacity>
         </View>
         <Text style={styles.userName}>{user?.name || 'Estafeta'}</Text>
@@ -83,11 +80,11 @@ export default function ProfileScreen() {
         
         <View style={styles.quickInfo}>
           <View style={styles.quickInfoItem}>
-            <Mail size={16} color={Colors.textSecondary} />
+            <Mail size={16} color={colors.textSecondary} />
             <Text style={styles.quickInfoText}>{user?.email || 'email@example.com'}</Text>
           </View>
           <View style={styles.quickInfoItem}>
-            <Phone size={16} color={Colors.textSecondary} />
+            <Phone size={16} color={colors.textSecondary} />
             <Text style={styles.quickInfoText}>{user?.phone || '+351 912 345 678'}</Text>
           </View>
         </View>
@@ -108,19 +105,19 @@ export default function ProfileScreen() {
       <View style={styles.menuSection}>
         <Text style={styles.sectionTitle}>Conta</Text>
         {renderMenuItem(
-          <User size={24} color={Colors.text} />,
+          <User size={24} color={colors.text} />,
           'Informações Pessoais',
           'Editar perfil e documentos',
           () => router.push('/profile/details')
         )}
         {renderMenuItem(
-          <Settings size={24} color={Colors.text} />,
+          <Settings size={24} color={colors.text} />,
           'Definições',
           'Preferências e segurança',
           () => router.push('/profile/settings')
         )}
         {renderMenuItem(
-          <Bell size={24} color={Colors.text} />,
+          <Bell size={24} color={colors.text} />,
           'Notificações',
           'Gerir notificações',
           () => router.push('/profile/notifications'),
@@ -131,7 +128,7 @@ export default function ProfileScreen() {
       <View style={styles.menuSection}>
         <Text style={styles.sectionTitle}>Suporte</Text>
         {renderMenuItem(
-          <HelpCircle size={24} color={Colors.text} />,
+          <HelpCircle size={24} color={colors.text} />,
           'Ajuda e Suporte',
           'Centro de ajuda e chat',
           () => router.push('/profile/support')
@@ -144,7 +141,7 @@ export default function ProfileScreen() {
         activeOpacity={0.7}
         testID="logout-button"
       >
-        <LogOut size={20} color={Colors.error} />
+        <LogOut size={20} color={colors.error} />
         <Text style={styles.logoutText}>Terminar Sessão</Text>
       </TouchableOpacity>
 
@@ -153,13 +150,13 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   profileCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     padding: 32,
     marginBottom: 24,
@@ -172,7 +169,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -189,21 +186,21 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: Colors.surface,
+    borderColor: colors.surface,
   },
   userName: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 4,
   },
   userRole: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   quickInfo: {
@@ -217,30 +214,30 @@ const styles = StyleSheet.create({
   },
   quickInfoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   warningBanner: {
     marginTop: 16,
-    backgroundColor: Colors.warning + '15',
+    backgroundColor: colors.warning + '15',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   warningText: {
     fontSize: 13,
-    color: Colors.warning,
+    color: colors.warning,
     fontWeight: '600' as const,
   },
   infoBanner: {
     marginTop: 16,
-    backgroundColor: Colors.info + '15',
+    backgroundColor: colors.info + '15',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   infoText: {
     fontSize: 13,
-    color: Colors.info,
+    color: colors.info,
     fontWeight: '600' as const,
   },
   menuSection: {
@@ -250,13 +247,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 12,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
@@ -270,7 +267,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -281,15 +278,15 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   menuSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   badge: {
-    backgroundColor: Colors.error,
+    backgroundColor: colors.error,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -300,7 +297,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: Colors.surface,
+    color: colors.surface,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -310,17 +307,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: Colors.error + '10',
+    backgroundColor: colors.error + '10',
     marginBottom: 16,
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.error,
+    color: colors.error,
   },
   versionText: {
     fontSize: 12,
-    color: Colors.textLight,
+    color: colors.textLight,
     textAlign: 'center',
     marginBottom: 32,
   },

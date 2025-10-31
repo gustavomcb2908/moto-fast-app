@@ -1,25 +1,27 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import { mockOrders, Order } from '@/constants/mockData';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { MapPin, Clock, DollarSign, CheckCircle, Circle, PlayCircle } from 'lucide-react-native';
 
 export default function OrdersScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [orders] = useState<Order[]>(mockOrders);
 
   const getStatusConfig = (status: Order['status']) => {
     switch (status) {
       case 'pending':
-        return { label: 'Pendente', color: Colors.warning, icon: Circle };
+        return { label: 'Pendente', color: colors.warning, icon: Circle };
       case 'accepted':
-        return { label: 'Aceite', color: Colors.info, icon: PlayCircle };
+        return { label: 'Aceite', color: colors.info, icon: PlayCircle };
       case 'in_progress':
-        return { label: 'Em Curso', color: Colors.primary, icon: PlayCircle };
+        return { label: 'Em Curso', color: colors.primary, icon: PlayCircle };
       case 'completed':
-        return { label: 'Concluída', color: Colors.success, icon: CheckCircle };
+        return { label: 'Concluída', color: colors.success, icon: CheckCircle };
       default:
-        return { label: 'Cancelada', color: Colors.error, icon: Circle };
+        return { label: 'Cancelada', color: colors.error, icon: Circle };
     }
   };
 
@@ -41,7 +43,7 @@ export default function OrdersScreen() {
             </Text>
           </View>
           <View style={styles.valueContainer}>
-            <DollarSign size={16} color={Colors.success} />
+            <DollarSign size={16} color={colors.success} />
             <Text style={styles.valueText}>€{item.value.toFixed(2)}</Text>
           </View>
         </View>
@@ -50,7 +52,7 @@ export default function OrdersScreen() {
 
         {item.pickupAddress && (
           <View style={styles.addressRow}>
-            <MapPin size={16} color={Colors.primary} />
+            <MapPin size={16} color={colors.primary} />
             <Text style={styles.addressLabel}>Recolha:</Text>
             <Text style={styles.addressText} numberOfLines={1}>
               {item.pickupAddress}
@@ -59,7 +61,7 @@ export default function OrdersScreen() {
         )}
 
         <View style={styles.addressRow}>
-          <MapPin size={16} color={Colors.success} />
+          <MapPin size={16} color={colors.success} />
           <Text style={styles.addressLabel}>Entrega:</Text>
           <Text style={styles.addressText} numberOfLines={1}>
             {item.address}
@@ -68,11 +70,11 @@ export default function OrdersScreen() {
 
         <View style={styles.orderFooter}>
           <View style={styles.infoItem}>
-            <Clock size={14} color={Colors.textSecondary} />
+            <Clock size={14} color={colors.textSecondary} />
             <Text style={styles.infoText}>{item.timeWindow}</Text>
           </View>
           <View style={styles.infoItem}>
-            <MapPin size={14} color={Colors.textSecondary} />
+            <MapPin size={14} color={colors.textSecondary} />
             <Text style={styles.infoText}>{item.distance.toFixed(1)} km</Text>
           </View>
         </View>
@@ -90,14 +92,14 @@ export default function OrdersScreen() {
 
         {item.status === 'accepted' && (
           <TouchableOpacity style={styles.startButton}>
-            <PlayCircle size={20} color={Colors.surface} />
+            <PlayCircle size={20} color={colors.surface} />
             <Text style={styles.startButtonText}>Iniciar Entrega</Text>
           </TouchableOpacity>
         )}
 
         {item.status === 'in_progress' && (
           <TouchableOpacity style={styles.completeButton}>
-            <CheckCircle size={20} color={Colors.surface} />
+            <CheckCircle size={20} color={colors.surface} />
             <Text style={styles.completeButtonText}>Concluir Entrega</Text>
           </TouchableOpacity>
         )}
@@ -111,8 +113,8 @@ export default function OrdersScreen() {
         options={{
           headerShown: true,
           title: 'Pedidos',
-          headerStyle: { backgroundColor: Colors.surface },
-          headerTintColor: Colors.text,
+          headerStyle: { backgroundColor: colors.surface },
+          headerTintColor: colors.text,
         }}
       />
       <View style={styles.container}>
@@ -133,17 +135,17 @@ export default function OrdersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   listContent: {
     padding: 16,
     gap: 12,
   },
   orderCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -178,12 +180,12 @@ const styles = StyleSheet.create({
   valueText: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.success,
+    color: colors.success,
   },
   clientName: {
     fontSize: 18,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 8,
   },
   addressRow: {
@@ -195,12 +197,12 @@ const styles = StyleSheet.create({
   addressLabel: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   addressText: {
     flex: 1,
     fontSize: 13,
-    color: Colors.text,
+    color: colors.text,
   },
   orderFooter: {
     flexDirection: 'row',
@@ -208,7 +210,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: colors.border,
   },
   infoItem: {
     flexDirection: 'row',
@@ -217,7 +219,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -228,25 +230,25 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
   },
   rejectButtonText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   acceptButton: {
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
   },
   acceptButtonText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.surface,
+    color: colors.surface,
   },
   startButton: {
     flexDirection: 'row',
@@ -256,12 +258,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: Colors.info,
+    backgroundColor: colors.info,
   },
   startButtonText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.surface,
+    color: colors.surface,
   },
   completeButton: {
     flexDirection: 'row',
@@ -271,12 +273,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: Colors.success,
+    backgroundColor: colors.success,
   },
   completeButtonText: {
     fontSize: 15,
     fontWeight: '600' as const,
-    color: Colors.surface,
+    color: colors.surface,
   },
   emptyContainer: {
     padding: 40,
@@ -284,6 +286,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });
