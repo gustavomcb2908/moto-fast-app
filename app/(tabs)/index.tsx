@@ -5,10 +5,12 @@ import { mockSummary } from '@/constants/mockData';
 import { DollarSign, Package, TrendingUp, AlertCircle, Bell, ArrowRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const renderStatCard = (
@@ -24,9 +26,7 @@ export default function HomeScreen() {
       disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}
-        testID={`stat-icon-${label}`}
-      >
+      <View style={[styles.iconContainer, { backgroundColor: color + '15' }]} testID={`stat-icon-${label}`}>
         {icon}
       </View>
       <Text style={styles.statValue}>{value}</Text>
@@ -52,13 +52,15 @@ export default function HomeScreen() {
     );
   };
 
+  const firstName = (user?.name?.split(' ')[0]) ?? t('auth.create_account');
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Olá, {user?.name?.split(' ')[0] || 'Estafeta'}!</Text>
-            <Text style={styles.subtitle}>Bem-vindo ao Moto Fast</Text>
+            <Text style={styles.greeting}>{t('home.greeting', { name: firstName })}</Text>
+            <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
           </View>
           <TouchableOpacity style={styles.notificationButton} testID="btn-notifications">
             <Bell size={24} color={colors.text} />
@@ -80,44 +82,44 @@ export default function HomeScreen() {
 
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Saldo Atual</Text>
+            <Text style={styles.balanceLabel}>{t('home.balance_label')}</Text>
             <TrendingUp size={20} color={colors.success} />
           </View>
           <Text style={styles.balanceAmount}>€{mockSummary.balance.toFixed(2)}</Text>
-          <Text style={styles.balanceSubtext}>Ganhos hoje: €{mockSummary.earningsToday.toFixed(2)}</Text>
+          <Text style={styles.balanceSubtext}>{t('home.earnings_today')}: €{mockSummary.earningsToday.toFixed(2)}</Text>
         </View>
 
         <View style={styles.statsGrid}>
           {renderStatCard(
-            <Package size={24} color={colors.primary} />,
-            'Entregas Hoje',
+            <Package size={24} color={colors.primary} />, 
+            t('home.stat_deliveries_today'),
             mockSummary.deliveriesToday,
             colors.primary,
             () => router.push('/orders')
           )}
           {renderStatCard(
-            <Package size={24} color={colors.warning} />,
-            'Em Curso',
+            <Package size={24} color={colors.warning} />, 
+            t('home.stat_in_progress'),
             mockSummary.inProgress,
             colors.warning
           )}
           {renderStatCard(
-            <Package size={24} color={colors.info} />,
-            'Pendentes',
+            <Package size={24} color={colors.info} />, 
+            t('home.stat_pending'),
             mockSummary.pending,
             colors.info,
             () => router.push('/orders')
           )}
           {renderStatCard(
-            <Package size={24} color={colors.success} />,
-            'Concluídas',
+            <Package size={24} color={colors.success} />, 
+            t('home.stat_completed'),
             mockSummary.completed,
             colors.success
           )}
         </View>
 
         <View style={styles.quickActions}>
-          <Text style={styles.sectionTitle}>Ações Rápidas</Text>
+          <Text style={styles.sectionTitle}>{t('home.quick_actions')}</Text>
           
           <TouchableOpacity
             style={styles.actionButton}
@@ -127,8 +129,8 @@ export default function HomeScreen() {
               <Package size={24} color={colors.surface} />
             </View>
             <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Ver Pedidos</Text>
-              <Text style={styles.actionSubtitle}>Gerir entregas pendentes</Text>
+              <Text style={styles.actionTitle}>{t('home.view_orders')}</Text>
+              <Text style={styles.actionSubtitle}>{t('home.manage_pending')}</Text>
             </View>
             <ArrowRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -141,8 +143,8 @@ export default function HomeScreen() {
               <DollarSign size={24} color={colors.surface} />
             </View>
             <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Ver Faturas</Text>
-              <Text style={styles.actionSubtitle}>Pagamentos e documentos</Text>
+              <Text style={styles.actionTitle}>{t('home.view_invoices')}</Text>
+              <Text style={styles.actionSubtitle}>{t('home.payments_documents')}</Text>
             </View>
             <ArrowRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>

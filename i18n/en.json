@@ -3,7 +3,16 @@
     "back": "Back",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "tabs": {
+    "home": "Home",
+    "orders": "Orders",
+    "map": "Map",
+    "rental": "Rental",
+    "profile": "Profile"
   },
   "settings": {
     "title": "Settings",
@@ -22,6 +31,45 @@
     "tip_title": "Security tip",
     "tip_text": "Use a strong password with at least 8 characters, including uppercase, lowercase and numbers.",
     "language": "Language",
-    "select_language": "Select your language"
+    "select_language": "Select your language",
+    "language_detected_title": "Language detected",
+    "language_detected_message": "We detected your device language is {{lang}}. Do you want to change the app language?"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}!",
+    "subtitle": "Welcome to Moto Fast",
+    "balance_label": "Current Balance",
+    "earnings_today": "Earnings today",
+    "stat_deliveries_today": "Deliveries Today",
+    "stat_in_progress": "In Progress",
+    "stat_pending": "Pending",
+    "stat_completed": "Completed",
+    "quick_actions": "Quick Actions",
+    "view_orders": "View Orders",
+    "manage_pending": "Manage pending deliveries",
+    "view_invoices": "View Invoices",
+    "payments_documents": "Payments and documents"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot your password?",
+    "login": "Sign In",
+    "or": "or",
+    "no_account": "Don't have an account?",
+    "create_account": "Create Account"
+  },
+  "welcome": {
+    "skip": "Skip",
+    "slide1_title": "Welcome to Moto Fast",
+    "slide1_sub": "The complete platform for couriers and fast deliveries",
+    "slide2_title": "Efficient Deliveries",
+    "slide2_sub": "Manage orders, routes and earnings in real-time",
+    "slide3_title": "Real-time Tracking",
+    "slide3_sub": "Track your deliveries and optimize routes automatically",
+    "slide4_title": "Motorbike Rental",
+    "slide4_sub": "Full access to the rental module with financial management",
+    "next": "Next",
+    "start": "Start"
   }
 }

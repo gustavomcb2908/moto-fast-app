@@ -3,7 +3,16 @@
     "back": "Atrás",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "tabs": {
+    "home": "Inicio",
+    "orders": "Pedidos",
+    "map": "Mapa",
+    "rental": "Alquiler",
+    "profile": "Perfil"
   },
   "settings": {
     "title": "Configuración",
@@ -22,6 +31,45 @@
     "tip_title": "Consejo de seguridad",
     "tip_text": "Usa una contraseña fuerte con al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números.",
     "language": "Idioma",
-    "select_language": "Selecciona tu idioma"
+    "select_language": "Selecciona tu idioma",
+    "language_detected_title": "Idioma detectado",
+    "language_detected_message": "Detectamos que el idioma de tu dispositivo es {{lang}}. ¿Deseas cambiar el idioma de la app?"
+  },
+  "home": {
+    "greeting": "Hola, {{name}}!",
+    "subtitle": "Bienvenido a Moto Fast",
+    "balance_label": "Saldo actual",
+    "earnings_today": "Ganancias hoy",
+    "stat_deliveries_today": "Entregas de hoy",
+    "stat_in_progress": "En curso",
+    "stat_pending": "Pendientes",
+    "stat_completed": "Completadas",
+    "quick_actions": "Acciones rápidas",
+    "view_orders": "Ver pedidos",
+    "manage_pending": "Gestionar entregas pendientes",
+    "view_invoices": "Ver facturas",
+    "payments_documents": "Pagos y documentos"
+  },
+  "auth": {
+    "email": "Correo",
+    "password": "Contraseña",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "login": "Iniciar sesión",
+    "or": "o",
+    "no_account": "¿No tienes cuenta?",
+    "create_account": "Crear cuenta"
+  },
+  "welcome": {
+    "skip": "Saltar",
+    "slide1_title": "Bienvenido a Moto Fast",
+    "slide1_sub": "La plataforma completa para repartidores y entregas rápidas",
+    "slide2_title": "Entregas eficientes",
+    "slide2_sub": "Gestiona pedidos, rutas y ganancias en tiempo real",
+    "slide3_title": "Seguimiento en tiempo real",
+    "slide3_sub": "Sigue tus entregas y optimiza rutas automáticamente",
+    "slide4_title": "Alquiler de motos",
+    "slide4_sub": "Acceso completo al módulo de alquiler con gestión financiera",
+    "next": "Siguiente",
+    "start": "Comenzar"
   }
 }

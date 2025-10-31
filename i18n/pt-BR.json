@@ -3,7 +3,16 @@
     "back": "Voltar",
     "cancel": "Cancelar",
     "confirm": "Confirmar",
-    "loading": "Carregando..."
+    "loading": "Carregando...",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "tabs": {
+    "home": "Início",
+    "orders": "Pedidos",
+    "map": "Mapa",
+    "rental": "Locadora",
+    "profile": "Perfil"
   },
   "settings": {
     "title": "Configurações",
@@ -22,6 +31,45 @@
     "tip_title": "Dica de Segurança",
     "tip_text": "Use uma senha forte com pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas e números.",
     "language": "Idioma",
-    "select_language": "Selecione seu idioma"
+    "select_language": "Selecione seu idioma",
+    "language_detected_title": "Idioma detectado",
+    "language_detected_message": "Detectamos que o idioma do seu dispositivo é {{lang}}. Deseja mudar o idioma do app?"
+  },
+  "home": {
+    "greeting": "Olá, {{name}}!",
+    "subtitle": "Bem-vindo ao Moto Fast",
+    "balance_label": "Saldo Atual",
+    "earnings_today": "Ganhos hoje",
+    "stat_deliveries_today": "Entregas Hoje",
+    "stat_in_progress": "Em Curso",
+    "stat_pending": "Pendentes",
+    "stat_completed": "Concluídas",
+    "quick_actions": "Ações Rápidas",
+    "view_orders": "Ver Pedidos",
+    "manage_pending": "Gerir entregas pendentes",
+    "view_invoices": "Ver Faturas",
+    "payments_documents": "Pagamentos e documentos"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Senha",
+    "forgot_password": "Esqueceu a senha?",
+    "login": "Entrar",
+    "or": "ou",
+    "no_account": "Não tem conta?",
+    "create_account": "Criar Conta"
+  },
+  "welcome": {
+    "skip": "Pular",
+    "slide1_title": "Bem-vindo ao Moto Fast",
+    "slide1_sub": "A plataforma completa para entregadores e entregas rápidas",
+    "slide2_title": "Entregas Eficientes",
+    "slide2_sub": "Gerencie pedidos, rotas e ganhos em tempo real",
+    "slide3_title": "Rastreamento em Tempo Real",
+    "slide3_sub": "Acompanhe suas entregas e otimize rotas automaticamente",
+    "slide4_title": "Aluguel de Motos",
+    "slide4_sub": "Acesso completo ao módulo de locadora com gestão financeira",
+    "next": "Próximo",
+    "start": "Começar"
   }
 }

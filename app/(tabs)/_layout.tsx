@@ -3,9 +3,11 @@ import { Home, Package, Map, Wallet, User } from "lucide-react-native";
 import React from "react";
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -26,35 +28,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Início",
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
-          title: "Pedidos",
+          title: t('tabs.orders'),
           tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="map"
         options={{
-          title: "Mapa",
+          title: t('tabs.map'),
           tabBarIcon: ({ color, size }) => <Map size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="rental"
         options={{
-          title: "Locadora",
+          title: t('tabs.rental'),
           tabBarIcon: ({ color, size }) => <Wallet size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Perfil",
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
           headerShown: false,
         }}

@@ -18,12 +18,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { BypassDemoButton } from '@/components/BypassDemoButton';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const { t } = useTranslation();
   const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
   const login = auth?.login ?? (async () => ({ success: false, error: 'Auth not ready' }));
 
@@ -31,11 +33,11 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Campos obrigatórios', 'Por favor, preencha email e senha.');
+      Alert.alert(t('auth.login'), t('common.confirm'));
       return;
     }
     if (!isEmailValid) {
-      Alert.alert('E-mail inválido', 'Insira um e-mail válido.');
+      Alert.alert(t('auth.email'), t('auth.email'));
       return;
     }
 
@@ -46,7 +48,7 @@ export default function LoginScreen() {
     if (result.success) {
       router.replace('/(tabs)');
     } else {
-      Alert.alert('Não foi possível entrar', result.error || 'Credenciais incorretas.');
+      Alert.alert(t('auth.login'), result.error || '');
     }
   };
 
@@ -85,7 +87,7 @@ export default function LoginScreen() {
             </View>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('auth.email')}
               placeholderTextColor={Colors.textLight}
               value={email}
               onChangeText={setEmail}
@@ -96,7 +98,7 @@ export default function LoginScreen() {
             />
           </View>
           {!!email && !isEmailValid && (
-            <Text style={styles.validationText} testID="email-error">E-mail inválido</Text>
+            <Text style={styles.validationText} testID="email-error">{t('auth.email')}</Text>
           )}
 
           <View style={styles.inputContainer}>
@@ -105,7 +107,7 @@ export default function LoginScreen() {
             </View>
             <TextInput
               style={styles.input}
-              placeholder="Senha"
+              placeholder={t('auth.password')}
               placeholderTextColor={Colors.textLight}
               value={password}
               onChangeText={setPassword}
@@ -124,7 +126,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/forgot-password')}
             testID="forgot-password"
           >
-            <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+            <Text style={styles.forgotText}>{t('auth.forgot_password')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -138,7 +140,7 @@ export default function LoginScreen() {
               <ActivityIndicator color={Colors.surface} />
             ) : (
               <>
-                <Text style={styles.loginButtonText}>Entrar</Text>
+                <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
                 <ArrowRight size={20} color={Colors.surface} />
               </>
             )}
@@ -146,7 +148,7 @@ export default function LoginScreen() {
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou</Text>
+            <Text style={styles.dividerText}>{t('auth.or')}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -158,7 +160,7 @@ export default function LoginScreen() {
             testID="go-register"
           >
             <Text style={styles.registerText}>
-              Não tem conta? <Text style={styles.registerTextBold}>Criar Conta</Text>
+              {t('auth.no_account')} <Text style={styles.registerTextBold}>{t('auth.create_account')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

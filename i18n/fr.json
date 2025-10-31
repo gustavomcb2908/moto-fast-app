@@ -3,7 +3,16 @@
     "back": "Retour",
     "cancel": "Annuler",
     "confirm": "Confirmer",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "orders": "Commandes",
+    "map": "Carte",
+    "rental": "Location",
+    "profile": "Profil"
   },
   "settings": {
     "title": "Paramètres",
@@ -22,6 +31,45 @@
     "tip_title": "Astuce de sécurité",
     "tip_text": "Utilisez un mot de passe fort d'au moins 8 caractères, incluant des majuscules, minuscules et des chiffres.",
     "language": "Langue",
-    "select_language": "Sélectionnez votre langue"
+    "select_language": "Sélectionnez votre langue",
+    "language_detected_title": "Langue détectée",
+    "language_detected_message": "Nous avons détecté que la langue de votre appareil est {{lang}}. Voulez-vous changer la langue de l'application ?"
+  },
+  "home": {
+    "greeting": "Bonjour, {{name}}!",
+    "subtitle": "Bienvenue sur Moto Fast",
+    "balance_label": "Solde actuel",
+    "earnings_today": "Gains aujourd'hui",
+    "stat_deliveries_today": "Livraisons aujourd'hui",
+    "stat_in_progress": "En cours",
+    "stat_pending": "En attente",
+    "stat_completed": "Terminées",
+    "quick_actions": "Actions rapides",
+    "view_orders": "Voir les commandes",
+    "manage_pending": "Gérer les livraisons en attente",
+    "view_invoices": "Voir les factures",
+    "payments_documents": "Paiements et documents"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "login": "Se connecter",
+    "or": "ou",
+    "no_account": "Pas de compte ?",
+    "create_account": "Créer un compte"
+  },
+  "welcome": {
+    "skip": "Passer",
+    "slide1_title": "Bienvenue sur Moto Fast",
+    "slide1_sub": "La plateforme complète pour les coursiers et les livraisons rapides",
+    "slide2_title": "Livraisons efficaces",
+    "slide2_sub": "Gérez les commandes, itinéraires et gains en temps réel",
+    "slide3_title": "Suivi en temps réel",
+    "slide3_sub": "Suivez vos livraisons et optimisez les itinéraires automatiquement",
+    "slide4_title": "Location de motos",
+    "slide4_sub": "Accès complet au module de location avec gestion financière",
+    "next": "Suivant",
+    "start": "Commencer"
   }
 }

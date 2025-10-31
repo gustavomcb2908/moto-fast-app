@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
 import { Package, MapPin, DollarSign, Bike } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
@@ -22,36 +23,36 @@ interface OnboardingSlide {
   icon: React.ReactNode;
 }
 
-const slides: OnboardingSlide[] = [
-  {
-    id: '1',
-    title: 'Bem-vindo ao Moto Fast',
-    subtitle: 'A plataforma completa para estafetas e entregas rápidas',
-    icon: <Bike size={80} color={Colors.surface} strokeWidth={1.5} />,
-  },
-  {
-    id: '2',
-    title: 'Entregas Eficientes',
-    subtitle: 'Gerencie pedidos, rotas e ganhos em tempo real',
-    icon: <Package size={80} color={Colors.surface} strokeWidth={1.5} />,
-  },
-  {
-    id: '3',
-    title: 'Tracking em Tempo Real',
-    subtitle: 'Acompanhe suas entregas e otimize rotas automaticamente',
-    icon: <MapPin size={80} color={Colors.surface} strokeWidth={1.5} />,
-  },
-  {
-    id: '4',
-    title: 'Aluguer de Motos',
-    subtitle: 'Acesso completo ao módulo de locadora com gestão financeira',
-    icon: <DollarSign size={80} color={Colors.surface} strokeWidth={1.5} />,
-  },
-];
-
-import { BypassDemoButton } from '@/components/BypassDemoButton';
-
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
+
+  const slides: OnboardingSlide[] = [
+    {
+      id: '1',
+      title: t('welcome.slide1_title'),
+      subtitle: t('welcome.slide1_sub'),
+      icon: <Bike size={80} color={Colors.surface} strokeWidth={1.5} />,
+    },
+    {
+      id: '2',
+      title: t('welcome.slide2_title'),
+      subtitle: t('welcome.slide2_sub'),
+      icon: <Package size={80} color={Colors.surface} strokeWidth={1.5} />,
+    },
+    {
+      id: '3',
+      title: t('welcome.slide3_title'),
+      subtitle: t('welcome.slide3_sub'),
+      icon: <MapPin size={80} color={Colors.surface} strokeWidth={1.5} />,
+    },
+    {
+      id: '4',
+      title: t('welcome.slide4_title'),
+      subtitle: t('welcome.slide4_sub'),
+      icon: <DollarSign size={80} color={Colors.surface} strokeWidth={1.5} />,
+    },
+  ];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -97,7 +98,7 @@ export default function WelcomeScreen() {
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip} style={styles.skipButton} testID="welcome-skip">
-          <Text style={styles.skipText}>Pular</Text>
+          <Text style={styles.skipText}>{t('welcome.skip')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -136,11 +137,9 @@ export default function WelcomeScreen() {
           testID="welcome-next"
         >
           <Text style={styles.nextButtonText}>
-            {currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}
+            {currentIndex === slides.length - 1 ? t('welcome.start') : t('welcome.next')}
           </Text>
         </TouchableOpacity>
-
-        <BypassDemoButton location="welcome" />
       </View>
     </LinearGradient>
   );
@@ -232,14 +231,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700' as const,
     color: Colors.primary,
-  },
-  loginButton: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.surface,
   },
 });

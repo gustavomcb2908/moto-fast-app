@@ -11,6 +11,7 @@ import { ThemedDialogProvider } from "@/components/ThemedDialog";
 import LanguageDetector from "@/components/LanguageDetector";
 import { LinearGradient } from 'expo-linear-gradient';
 import "@/i18n";
+import { useTranslation } from 'react-i18next';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,9 +48,10 @@ function AppSplashOverlay() {
 
 function RootLayoutNav() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }} testID="root-layout-bg">
-      <Stack screenOptions={{ headerBackTitle: "Voltar" }}>
+      <Stack screenOptions={{ headerBackTitle: t('common.back') }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
