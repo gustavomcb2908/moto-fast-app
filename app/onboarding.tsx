@@ -96,23 +96,14 @@ export default function OnboardingScreen() {
       allowsEditing: true,
       quality: 0.85,
       aspect: [1, 1],
+      cameraType: 'front' as any,
     });
     if (!result.canceled && result.assets[0]) {
       setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
     }
   };
 
-  const pickImageFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-      aspect: [1, 1],
-    });
-    if (!result.canceled && result.assets[0]) {
-      setFormData((prev) => ({ ...prev, selfie: result.assets[0].uri }));
-    }
-  };
+
 
   const handleNext = () => {
     if (currentStep === 1) {
@@ -288,7 +279,7 @@ export default function OnboardingScreen() {
           <Upload size={24} color={Colors.primary} />
         )}
         <Text style={styles.uploadText}>
-          {formData.idDocument ? 'CC/BI Carregado' : 'Carregar CC/BI'}
+          {formData.idDocument ? 'CC/Título de Residência/Passaporte Carregado' : 'Carregar CC/Título de Residência/Passaporte'}
         </Text>
       </TouchableOpacity>
 
@@ -338,10 +329,6 @@ export default function OnboardingScreen() {
             <Text style={styles.selfieButtonText}>Tirar Selfie</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.selfieButtonSecondary} onPress={pickImageFromGallery} testID="selfie-gallery">
-            <Upload size={24} color={Colors.textSecondary} />
-            <Text style={styles.selfieButtonSecondaryText}>Escolher da Galeria</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -355,24 +342,48 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  const renderVehicle = () => (
-    <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Veículo</Text>
-      <Text style={styles.stepSubtitle}>Escolha o seu veículo</Text>
+  const renderVehicle = () => {
+    const vehicles = [
+      { id: 'v123', name: 'Honda CG 150', price: 120, desc: 'Económica e confiável' },
+      { id: 'v200', name: 'Yamaha YBR 150', price: 135, desc: 'Confortável e eficiente' },
+      { id: 'v300', name: 'Honda PCX 160', price: 165, desc: 'Mais potência e conforto' },
+    ];
+    return (
+      <View style={styles.stepContent}>
+        <Text style={styles.stepTitle}>Veículo</Text>
+        <Text style={styles.stepSubtitle}>Escolha o seu veículo</Text>
 
-      <View style={styles.vehicleCard}>
-        <Text style={styles.vehicleName}>Honda CG 150</Text>
-        <Text style={styles.vehiclePrice}>€120/mês</Text>
-        <Text style={styles.vehicleDescription}>
-          Moto ideal para entregas urbanas, económica e confiável
+        <View style={{ gap: 12 }}>
+          {vehicles.map((v) => {
+            const selected = formData.vehicleId === v.id;
+            return (
+              <TouchableOpacity
+                key={v.id}
+                onPress={() => setFormData((p) => ({ ...p, vehicleId: v.id }))}
+                activeOpacity={0.9}
+                style={[
+                  styles.vehicleCard,
+                  { borderWidth: 2, borderColor: selected ? Colors.primary : Colors.border, transform: [{ scale: selected ? 1.01 : 1 }] },
+                ]}
+                testID={`vehicle-${v.id}`}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={styles.vehicleName}>{v.name}</Text>
+                  {selected && <CheckCircle size={20} color={Colors.primary} />}
+                </View>
+                <Text style={styles.vehiclePrice}>€{v.price}/mês</Text>
+                <Text style={styles.vehicleDescription}>{v.desc}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={styles.infoText}>
+          Pode alterar esta escolha depois. Mais opções estarão disponíveis após o registo.
         </Text>
       </View>
-
-      <Text style={styles.infoText}>
-        Mais opções de veículos estarão disponíveis após o registo
-      </Text>
-    </View>
-  );
+    );
+  };
 
   const renderContract = () => (
     <View style={styles.stepContent}>
