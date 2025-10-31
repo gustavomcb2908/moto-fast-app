@@ -59,6 +59,7 @@ export default function SupportScreen() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [messageText, setMessageText] = useState('');
   const scrollViewRef = useRef<FlatList>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
 
   const categories = getFAQCategories();
   const filteredFAQs = filterFAQByCategory(selectedCategory).filter((item) =>
@@ -102,10 +103,14 @@ export default function SupportScreen() {
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      const anyEvent = e as unknown as { endCoordinates?: { height?: number } };
+      const height = anyEvent.endCoordinates?.height ?? 0;
+      setKeyboardHeight(height);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 50);
     });
     const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
       setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 50);
     });
     return () => {
@@ -260,13 +265,19 @@ export default function SupportScreen() {
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.messagesList, { paddingBottom: insets.bottom + 8 }]}
+        contentContainerStyle={[
+          styles.messagesList,
+          { paddingBottom: insets.bottom + 8 + (Platform.OS !== 'web' ? keyboardHeight : 0) }
+        ]}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
 
-      <View style={[styles.inputContainer, { paddingBottom: 12 + insets.bottom }]}>
+      <View style={[
+        styles.inputContainer,
+        { paddingBottom: 12 + insets.bottom + (Platform.OS !== 'web' ? Math.max(0, keyboardHeight * 0.1) : 0) }
+      ]}>
         <TextInput
           style={styles.messageInput}
           placeholder="Digite sua mensagem..."
@@ -347,22 +358,24 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   categoriesScroll: {
-    maxHeight: 56,
+    maxHeight: 64,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+    paddingVertical: 10,
+    gap: 10,
     alignItems: 'center',
   },
   categoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    minHeight: 34,
+    minHeight: 38,
+    minWidth: 80,
+    alignItems: 'center',
   },
   categoryChipActive: {
     backgroundColor: Colors.primary,
@@ -375,7 +388,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: 14,
-    fontWeight: '600' as const,
+    fontWeight: '700' as const,
     color: Colors.text,
   },
   categoryChipTextActive: {
