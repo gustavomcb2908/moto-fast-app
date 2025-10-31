@@ -199,9 +199,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       return { success: false, error: 'Erro ao recuperar senha' };
     } catch (error: any) {
       console.error('❌ Password recovery error:', error);
+      const friendly =
+        typeof error?.message === 'string' && error.message.includes('JSON Parse error')
+          ? 'Falha ao comunicar com o servidor. Tente novamente em instantes.'
+          : (error?.message || 'Erro ao recuperar senha');
       return { 
         success: false, 
-        error: error?.message || 'Erro ao recuperar senha' 
+        error: friendly 
       };
     }
   }, []);
