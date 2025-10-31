@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Moto Fast App",
+    "name": "Moto Fast ",
     "slug": "moto-fast-app-fj1czqe",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.moto-fast-app-fj1czqe",
+      "bundleIdentifier": "app.moto-fast-app-fj1czqe",
       "infoPlist": {
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
         "NSLocationAlwaysUsageDescription": "Allow $(PRODUCT_NAME) to use your location.",
@@ -33,7 +33,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.moto_fast_app_fj1czqe",
+      "package": "app.moto_fast_app_fj1czqe",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
