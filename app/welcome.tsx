@@ -49,6 +49,8 @@ const slides: OnboardingSlide[] = [
   },
 ];
 
+import { BypassDemoButton } from '@/components/BypassDemoButton';
+
 export default function WelcomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
@@ -94,7 +96,7 @@ export default function WelcomeScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+        <TouchableOpacity onPress={handleSkip} style={styles.skipButton} testID="welcome-skip">
           <Text style={styles.skipText}>Pular</Text>
         </TouchableOpacity>
       </View>
@@ -131,11 +133,14 @@ export default function WelcomeScreen() {
           style={styles.nextButton}
           onPress={handleNext}
           activeOpacity={0.9}
+          testID="welcome-next"
         >
           <Text style={styles.nextButtonText}>
             {currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}
           </Text>
         </TouchableOpacity>
+
+        <BypassDemoButton location="welcome" />
       </View>
     </LinearGradient>
   );

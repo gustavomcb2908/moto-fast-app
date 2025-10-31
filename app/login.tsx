@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import Colors from '@/constants/colors';
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { BypassDemoButton } from '@/components/BypassDemoButton';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState<string>('');
@@ -148,6 +149,8 @@ export default function LoginScreen() {
             <Text style={styles.dividerText}>ou</Text>
             <View style={styles.dividerLine} />
           </View>
+
+          <BypassDemoButton location="login" />
 
           <TouchableOpacity
             style={styles.registerButton}

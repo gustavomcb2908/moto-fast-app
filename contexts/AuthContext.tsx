@@ -276,7 +276,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const logout = useCallback(async () => {
     try {
-      if (authState.refreshToken) {
+      if (authState.refreshToken && authState.refreshToken !== 'demo') {
         await trpcClient.auth.logout.mutate({ 
           refreshToken: authState.refreshToken 
         });
@@ -299,6 +299,34 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       console.error('Logout error:', error);
     }
   }, [authState.refreshToken]);
+
+  const bypassDemoLogin = useCallback(async () => {
+    try {
+      console.log('🧪 Activating demo bypass login');
+      const demoUser: User = {
+        id: 'demo-user',
+        name: 'Demo Rider',
+        email: 'demo@moto.fast',
+        phone: '+000000000',
+        kyc_status: 'approved',
+        email_verified: true,
+      };
+      await AsyncStorage.setItem('access_token', 'demo');
+      await AsyncStorage.setItem('refresh_token', 'demo');
+      await AsyncStorage.setItem('user', JSON.stringify(demoUser));
+      setAuthState({
+        user: demoUser,
+        accessToken: 'demo',
+        refreshToken: 'demo',
+        isLoading: false,
+        isAuthenticated: true,
+      });
+      return { success: true } as const;
+    } catch (error) {
+      console.error('Bypass demo login failed:', error);
+      return { success: false, error: 'Falha ao iniciar demo' } as const;
+    }
+  }, []);
 
   const refreshUserData = useCallback(async () => {
     try {
@@ -329,6 +357,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     logout,
     refreshTokens,
     refreshUserData,
+    bypassDemoLogin,
   }), [
     authState, 
     login, 
@@ -340,5 +369,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     logout,
     refreshTokens,
     refreshUserData,
+    bypassDemoLogin,
   ]);
 });
