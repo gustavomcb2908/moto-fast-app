@@ -3,6 +3,7 @@ import { httpLink } from "@trpc/client";
 import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
 import { Platform } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const trpc = createTRPCReact<AppRouter>();
 
@@ -39,6 +40,14 @@ export const trpcClient = trpc.createClient({
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
+      async headers() {
+        try {
+          const token = await AsyncStorage.getItem('access_token');
+          return token ? { Authorization: `Bearer ${token}` } : {};
+        } catch {
+          return {};
+        }
+      },
       fetch(url, options) {
         return fetch(url, options).then(async (res) => {
           try {
@@ -51,8 +60,8 @@ export const trpcClient = trpc.createClient({
                 text: text.slice(0, 300),
               });
             }
-          } catch (e) {
-            console.log("tRPC fetch inspector error", e);
+          } catch (err) {
+            console.log("tRPC fetch inspector error", err);
           }
           return res;
         });
