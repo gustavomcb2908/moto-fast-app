@@ -13,7 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { token, email } = useLocalSearchParams<{ token: string; email: string }>();
-  const { verifyEmail } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const verifyEmail = auth?.verifyEmail ?? (async () => ({ success: false, error: 'Auth not ready' }));
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -47,6 +48,14 @@ export default function VerifyEmailScreen() {
       router.replace('/');
     }
   };
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#16A34A" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

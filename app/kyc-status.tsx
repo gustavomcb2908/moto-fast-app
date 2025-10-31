@@ -21,7 +21,9 @@ import {
 } from 'lucide-react-native';
 
 export default function KYCStatusScreen() {
-  const { user, kycStatus } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const user = auth?.user ?? null as any;
+  const kycStatus = (auth as any)?.kycStatus ?? null;
 
   const getStatusIcon = () => {
     switch (kycStatus?.status) {
@@ -74,6 +76,14 @@ export default function KYCStatusScreen() {
         return Colors.textSecondary;
     }
   };
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: Colors.text }}>Carregando...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

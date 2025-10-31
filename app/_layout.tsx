@@ -61,7 +61,9 @@ function RootLayoutNav() {
 
 function AppShell() {
   const [showSplash, setShowSplash] = useState<boolean>(true);
-  const { isAuthenticated } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const isAuthenticated = auth?.isAuthenticated ?? false;
+  const isLoading = !auth || auth?.isLoading;
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -77,7 +79,12 @@ function AppShell() {
   return (
     <View style={{ flex: 1 }}>
       <RootLayoutNav />
-      {showSplash && <AppSplashOverlay />}
+      {(showSplash || isLoading) && <AppSplashOverlay />}
+      {isLoading && (
+        <View style={{ ...StyleSheet.absoluteFillObject as any, alignItems: 'center', justifyContent: 'center' }} testID="auth-loading">
+          <Text style={{ color: '#fff' }}>Carregando...</Text>
+        </View>
+      )}
     </View>
   );
 }

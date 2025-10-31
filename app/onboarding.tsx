@@ -39,7 +39,8 @@ type Step = 1 | 2 | 3 | 4 | 5;
 export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const register = auth?.register ?? (async () => ({ success: false, error: 'Auth not ready' }));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -417,6 +418,14 @@ export default function OnboardingScreen() {
         return null;
     }
   };
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>

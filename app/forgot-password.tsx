@@ -17,7 +17,8 @@ import { Mail, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ForgotPasswordScreen() {
-  const { recoverPassword } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const recoverPassword = auth?.recoverPassword ?? (async () => ({ success: false, error: 'Auth not ready' }));
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -72,6 +73,14 @@ export default function ForgotPasswordScreen() {
             <Text style={styles.backButtonText}>Voltar para Login</Text>
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  }
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }

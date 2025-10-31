@@ -19,7 +19,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token, email } = useLocalSearchParams<{ token: string; email: string }>();
-  const { resetPassword } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const resetPassword = auth?.resetPassword ?? (async () => ({ success: false, error: 'Auth not ready' }));
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -68,6 +69,14 @@ export default function ResetPasswordScreen() {
       Alert.alert('Erro', result.error || 'Erro ao redefinir senha');
     }
   };
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

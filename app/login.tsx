@@ -23,7 +23,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const { login } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+  const login = auth?.login ?? (async () => ({ success: false, error: 'Auth not ready' }));
 
   const isEmailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), [email]);
 
@@ -47,6 +48,14 @@ export default function LoginScreen() {
       Alert.alert('Não foi possível entrar', result.error || 'Credenciais incorretas.');
     }
   };
+
+  if (!auth) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top','bottom']}>

@@ -16,7 +16,10 @@ export interface ChangePasswordData {
 }
 
 export function useProfile() {
-  const { user, refreshUserData } = useAuth();
+  const auth = useAuth() as ReturnType<typeof useAuth> | undefined;
+
+  const user = auth?.user ?? null;
+  const refreshUserData = auth?.refreshUserData ?? (async () => {});
 
   const profileQuery = useQuery({
     queryKey: ['profile', user?.id],
