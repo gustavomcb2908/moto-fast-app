@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Colors from '@/constants/colors';
-import { Bell, Moon, Lock, Shield, ChevronRight } from 'lucide-react-native';
+import { useTheme, ThemeChoice } from '@/contexts/ThemeContext';
+import { Bell, Moon, Lock, Shield, ChevronRight, SunMedium, Cog } from 'lucide-react-native';
 
 export default function SettingsScreen() {
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const { colors, choice, setChoice } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const [pushNotifications, setPushNotifications] = useState<boolean>(true);
+  const [themeChoice, setThemeChoice] = useState<ThemeChoice>(choice);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
@@ -33,11 +36,12 @@ export default function SettingsScreen() {
     console.log('Push notifications:', value);
   };
 
-  const handleDarkModeToggle = async (value: boolean) => {
-    setDarkMode(value);
-    await AsyncStorage.setItem('darkMode', JSON.stringify(value));
-    console.log('Dark mode:', value);
-    Alert.alert('Modo Escuro', 'Funcionalidade será implementada em breve.');
+  const handleThemeChange = async (value: ThemeChoice) => {
+    setThemeChoice(value);
+    setChoice(value);
+    await AsyncStorage.setItem('@motofast-theme', value);
+    console.log('Theme changed:', value);
+    Alert.alert('Tema', 'Tema atualizado com sucesso');
   };
 
   const handleChangePassword = async () => {
@@ -96,23 +100,23 @@ export default function SettingsScreen() {
         <Switch
           value={value}
           onValueChange={onToggle}
-          trackColor={{ false: Colors.border, true: Colors.primary }}
-          thumbColor={Colors.surface}
+          trackColor={{ false: colors.border, true: colors.primary }}
+          thumbColor={colors.surface}
         />
       ) : onPress ? (
         <TouchableOpacity onPress={onPress}>
-          <ChevronRight size={20} color={Colors.textSecondary} />
+          <ChevronRight size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       ) : null}
     </View>
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="settings-screen">
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Notificações</Text>
         {renderSettingItem(
-          <Bell size={24} color={Colors.text} />,
+          <Bell size={24} color={colors.text} />,
           'Notificações Push',
           'Receber notificações sobre entregas e atualizações',
           pushNotifications,
@@ -122,19 +126,48 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Aparência</Text>
-        {renderSettingItem(
-          <Moon size={24} color={Colors.text} />,
-          'Modo Escuro',
-          'Ativar tema escuro da aplicação',
-          darkMode,
-          handleDarkModeToggle
-        )}
+        <View style={styles.themeGroup}>
+          <TouchableOpacity
+            style={[styles.themeOption, themeChoice === 'light' && styles.themeOptionActive]}
+            onPress={() => handleThemeChange('light')}
+            activeOpacity={0.8}
+            testID="theme-light"
+          >
+            <View style={styles.themeIcon}><SunMedium size={18} color={colors.text} /></View>
+            <Text style={styles.themeLabel}>Claro</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeOption, themeChoice === 'dark' && styles.themeOptionActive]}
+            onPress={() => handleThemeChange('dark')}
+            activeOpacity={0.8}
+            testID="theme-dark"
+          >
+            <View style={styles.themeIcon}><Moon size={18} color={colors.text} /></View>
+            <Text style={styles.themeLabel}>Escuro</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.themeOption, themeChoice === 'system' && styles.themeOptionActive]}
+            onPress={() => handleThemeChange('system')}
+            activeOpacity={0.8}
+            testID="theme-system"
+          >
+            <View style={styles.themeIcon}><Cog size={18} color={colors.text} /></View>
+            <Text style={styles.themeLabel}>Automático</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.themePreview}>
+          <View style={styles.previewCardLight} />
+          <View style={styles.previewCardDark} />
+        </View>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Segurança</Text>
         {renderSettingItem(
-          <Lock size={24} color={Colors.text} />,
+          <Lock size={24} color={colors.text} />,
           'Alterar Senha',
           'Modificar sua senha de acesso',
           undefined,
@@ -142,7 +175,7 @@ export default function SettingsScreen() {
           () => setShowPasswordModal(true)
         )}
         {renderSettingItem(
-          <Shield size={24} color={Colors.text} />,
+          <Shield size={24} color={colors.text} />,
           'Autenticação em Dois Fatores',
           'Adicionar camada extra de segurança (Em breve)',
           false,
@@ -175,7 +208,7 @@ export default function SettingsScreen() {
                 onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
                 secureTextEntry
                 placeholder="Digite sua senha atual"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
             </View>
 
@@ -187,7 +220,7 @@ export default function SettingsScreen() {
                 onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
                 secureTextEntry
                 placeholder="Digite a nova senha"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
             </View>
 
@@ -199,7 +232,7 @@ export default function SettingsScreen() {
                 onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
                 secureTextEntry
                 placeholder="Confirme a nova senha"
-                placeholderTextColor={Colors.textLight}
+                placeholderTextColor={colors.textLight}
               />
             </View>
 
@@ -218,7 +251,7 @@ export default function SettingsScreen() {
                 disabled={isChangingPassword}
               >
                 {isChangingPassword ? (
-                  <ActivityIndicator size="small" color={Colors.surface} />
+                  <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
                   <Text style={styles.confirmButtonText}>Confirmar</Text>
                 )}
@@ -233,10 +266,10 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   section: {
     marginTop: 24,
@@ -245,13 +278,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 12,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
@@ -265,7 +298,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -276,31 +309,31 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   infoBox: {
     marginHorizontal: 16,
     marginTop: 24,
-    backgroundColor: Colors.info + '15',
+    backgroundColor: colors.info + '15',
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.info,
+    borderLeftColor: colors.info,
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   modalOverlay: {
@@ -309,7 +342,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -318,7 +351,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 24,
     textAlign: 'center',
   },
@@ -328,18 +361,18 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: Colors.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -350,19 +383,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   confirmButton: {
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
   },
   confirmButtonDisabled: {
@@ -371,9 +404,65 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.surface,
+    color: colors.surface,
   },
   bottomPadding: {
     height: 32,
+  },
+  themeGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  themeOptionActive: {
+    borderColor: colors.primary,
+  },
+  themeIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  themeLabel: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  themePreview: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  previewCardLight: {
+    flex: 1,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewCardDark: {
+    flex: 1,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 });

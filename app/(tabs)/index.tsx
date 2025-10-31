@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockSummary } from '@/constants/mockData';
-import Colors from '@/constants/colors';
 import { DollarSign, Package, TrendingUp, AlertCircle, Bell, ArrowRight } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const renderStatCard = (
     icon: React.ReactNode,
@@ -22,7 +24,9 @@ export default function HomeScreen() {
       disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
+      <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}
+        testID={`stat-icon-${label}`}
+      >
         {icon}
       </View>
       <Text style={styles.statValue}>{value}</Text>
@@ -31,8 +35,8 @@ export default function HomeScreen() {
   );
 
   const renderAlert = (type: 'warning' | 'info', message: string, onPress?: () => void) => {
-    const bgColor = type === 'warning' ? Colors.warning + '15' : Colors.info + '15';
-    const iconColor = type === 'warning' ? Colors.warning : Colors.info;
+    const bgColor = type === 'warning' ? colors.warning + '15' : colors.info + '15';
+    const iconColor = type === 'warning' ? colors.warning : colors.info;
 
     return (
       <TouchableOpacity
@@ -56,8 +60,8 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>Olá, {user?.name?.split(' ')[0] || 'Estafeta'}!</Text>
             <Text style={styles.subtitle}>Bem-vindo ao Moto Fast</Text>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={24} color={Colors.text} />
+          <TouchableOpacity style={styles.notificationButton} testID="btn-notifications">
+            <Bell size={24} color={colors.text} />
             <View style={styles.notificationBadge} />
           </TouchableOpacity>
         </View>
@@ -77,7 +81,7 @@ export default function HomeScreen() {
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
             <Text style={styles.balanceLabel}>Saldo Atual</Text>
-            <TrendingUp size={20} color={Colors.success} />
+            <TrendingUp size={20} color={colors.success} />
           </View>
           <Text style={styles.balanceAmount}>€{mockSummary.balance.toFixed(2)}</Text>
           <Text style={styles.balanceSubtext}>Ganhos hoje: €{mockSummary.earningsToday.toFixed(2)}</Text>
@@ -85,30 +89,30 @@ export default function HomeScreen() {
 
         <View style={styles.statsGrid}>
           {renderStatCard(
-            <Package size={24} color={Colors.primary} />,
+            <Package size={24} color={colors.primary} />,
             'Entregas Hoje',
             mockSummary.deliveriesToday,
-            Colors.primary,
+            colors.primary,
             () => router.push('/orders')
           )}
           {renderStatCard(
-            <Package size={24} color={Colors.warning} />,
+            <Package size={24} color={colors.warning} />,
             'Em Curso',
             mockSummary.inProgress,
-            Colors.warning
+            colors.warning
           )}
           {renderStatCard(
-            <Package size={24} color={Colors.info} />,
+            <Package size={24} color={colors.info} />,
             'Pendentes',
             mockSummary.pending,
-            Colors.info,
+            colors.info,
             () => router.push('/orders')
           )}
           {renderStatCard(
-            <Package size={24} color={Colors.success} />,
+            <Package size={24} color={colors.success} />,
             'Concluídas',
             mockSummary.completed,
-            Colors.success
+            colors.success
           )}
         </View>
 
@@ -120,27 +124,27 @@ export default function HomeScreen() {
             onPress={() => router.push('/orders')}
           >
             <View style={styles.actionIconContainer}>
-              <Package size={24} color={Colors.surface} />
+              <Package size={24} color={colors.surface} />
             </View>
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Ver Pedidos</Text>
               <Text style={styles.actionSubtitle}>Gerir entregas pendentes</Text>
             </View>
-            <ArrowRight size={20} color={Colors.textSecondary} />
+            <ArrowRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push('/rental')}
           >
-            <View style={[styles.actionIconContainer, { backgroundColor: Colors.success }]}>
-              <DollarSign size={24} color={Colors.surface} />
+            <View style={[styles.actionIconContainer, { backgroundColor: colors.success }]}>
+              <DollarSign size={24} color={colors.surface} />
             </View>
             <View style={styles.actionContent}>
               <Text style={styles.actionTitle}>Ver Faturas</Text>
               <Text style={styles.actionSubtitle}>Pagamentos e documentos</Text>
             </View>
-            <ArrowRight size={20} color={Colors.textSecondary} />
+            <ArrowRight size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -148,10 +152,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -163,18 +167,18 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
   },
   subtitle: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 4,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.error,
+    backgroundColor: '#EF4444',
   },
   alertsSection: {
     paddingHorizontal: 20,
@@ -212,10 +216,10 @@ const styles = StyleSheet.create({
   balanceCard: {
     marginHorizontal: 20,
     padding: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 16,
     marginBottom: 20,
-    shadowColor: Colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -229,18 +233,18 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: Colors.surface,
+    color: colors.surface,
     opacity: 0.9,
   },
   balanceAmount: {
     fontSize: 36,
     fontWeight: '700' as const,
-    color: Colors.surface,
+    color: colors.surface,
     marginBottom: 4,
   },
   balanceSubtext: {
     fontSize: 14,
-    color: Colors.surface,
+    color: colors.surface,
     opacity: 0.8,
   },
   statsGrid: {
@@ -253,7 +257,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '47%',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -265,7 +269,7 @@ const styles = StyleSheet.create({
   },
   statCardClickable: {
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: colors.border,
   },
   iconContainer: {
     width: 48,
@@ -278,12 +282,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   quickActions: {
@@ -293,13 +297,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 16,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -313,7 +317,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -324,11 +328,11 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: Colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   actionSubtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });
