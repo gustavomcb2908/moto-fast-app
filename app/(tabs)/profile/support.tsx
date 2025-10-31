@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,11 @@ import {
   Keyboard,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import Colors from '@/constants/colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getFAQCategories, filterFAQByCategory, FAQItem } from '@/constants/faq';
 import { Send, ChevronDown, Search } from 'lucide-react-native';
+
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabType = 'faq' | 'chat';
 
@@ -47,10 +49,10 @@ const mockMessages: Message[] = [
   },
 ];
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 export default function SupportScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('faq');
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,7 +154,7 @@ export default function SupportScreen() {
         <View style={styles.faqHeader}>
           <Text style={styles.faqQuestion}>{item.question}</Text>
           <View style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }}>
-            <ChevronDown size={20} color={Colors.primary} />
+            <ChevronDown size={20} color={colors.primary} />
           </View>
         </View>
         {isExpanded && (
@@ -199,11 +201,11 @@ export default function SupportScreen() {
   const renderFAQTab = () => (
     <View style={styles.faqContainer}>
       <View style={styles.searchContainer}>
-        <Search size={20} color={Colors.textSecondary} />
+        <Search size={20} color={colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Pesquisar perguntas..."
-          placeholderTextColor={Colors.textLight}
+          placeholderTextColor={colors.textLight}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -281,7 +283,7 @@ export default function SupportScreen() {
         <TextInput
           style={styles.messageInput}
           placeholder="Digite sua mensagem..."
-          placeholderTextColor={Colors.textLight}
+          placeholderTextColor={colors.textLight}
           value={messageText}
           onChangeText={setMessageText}
           multiline
@@ -294,7 +296,7 @@ export default function SupportScreen() {
           disabled={!messageText.trim()}
           activeOpacity={0.7}
         >
-          <Send size={20} color={Colors.surface} />
+          <Send size={20} color={colors.surface} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -308,252 +310,254 @@ export default function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: Colors.primary,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  tabTextActive: {
-    color: Colors.primary,
-  },
-  faqContainer: {
-    flex: 1,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: Colors.text,
-  },
-  categoriesScroll: {
-    maxHeight: 64,
-  },
-  categoriesContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 10,
-    alignItems: 'center',
-  },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minHeight: 38,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  categoryChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.text,
-  },
-  categoryChipTextActive: {
-    color: Colors.surface,
-  },
-  faqList: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  faqItem: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  faqHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  faqQuestion: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginRight: 12,
-  },
-  faqAnswerContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  faqAnswer: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  faqCategoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  faqCategoryText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: Colors.primary,
-  },
-  emptyState: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-  },
-  chatContainer: {
-    flex: 1,
-  },
-  messagesList: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  messageContainerUser: {
-    justifyContent: 'flex-end',
-  },
-  messageBubble: {
-    maxWidth: '70%',
-    padding: 12,
-    borderRadius: 16,
-  },
-  messageBubbleUser: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  messageBubbleSupport: {
-    backgroundColor: Colors.surface,
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 15,
-    color: Colors.text,
-    lineHeight: 22,
-  },
-  messageTextUser: {
-    color: Colors.surface,
-  },
-  messageTime: {
-    fontSize: 11,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  messageTimeUser: {
-    color: Colors.surface + 'CC',
-  },
-  supportAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  supportAvatarText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.surface,
-  },
-  userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.textSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userAvatarText: {
-    fontSize: 14,
-    fontWeight: '700' as const,
-    color: Colors.surface,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: 12,
-  },
-  messageInput: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: Colors.text,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
-});
+const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tab: {
+      flex: 1,
+      paddingVertical: 16,
+      alignItems: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
+    },
+    tabActive: {
+      borderBottomColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+    },
+    tabTextActive: {
+      color: colors.primary,
+    },
+    faqContainer: {
+      flex: 1,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      marginHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      gap: 12,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+    },
+    categoriesScroll: {
+      maxHeight: 64,
+    },
+    categoriesContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      gap: 10,
+      alignItems: 'center',
+    },
+    categoryChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      minHeight: 38,
+      minWidth: 80,
+      alignItems: 'center',
+    },
+    categoryChipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 3,
+      elevation: 1,
+    },
+    categoryChipText: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.text,
+    },
+    categoryChipTextActive: {
+      color: colors.surface,
+    },
+    faqList: {
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 32,
+    },
+    faqItem: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    faqHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    faqQuestion: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      color: colors.text,
+      marginRight: 12,
+    },
+    faqAnswerContainer: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    faqAnswer: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 22,
+      marginBottom: 12,
+    },
+    faqCategoryBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.primary + '15',
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    faqCategoryText: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.primary,
+    },
+    emptyState: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyStateText: {
+      fontSize: 15,
+      color: colors.textSecondary,
+    },
+    chatContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    messagesList: {
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      gap: 12,
+    },
+    messageContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 8,
+    },
+    messageContainerUser: {
+      justifyContent: 'flex-end',
+    },
+    messageBubble: {
+      maxWidth: '70%',
+      padding: 12,
+      borderRadius: 16,
+    },
+    messageBubbleUser: {
+      backgroundColor: colors.primary,
+      borderBottomRightRadius: 4,
+    },
+    messageBubbleSupport: {
+      backgroundColor: colors.surface,
+      borderBottomLeftRadius: 4,
+    },
+    messageText: {
+      fontSize: 15,
+      color: colors.text,
+      lineHeight: 22,
+    },
+    messageTextUser: {
+      color: colors.surface,
+    },
+    messageTime: {
+      fontSize: 11,
+      color: colors.textLight,
+      marginTop: 4,
+    },
+    messageTimeUser: {
+      color: colors.surface + 'CC',
+    },
+    supportAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    supportAvatarText: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.surface,
+    },
+    userAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.textSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    userAvatarText: {
+      fontSize: 14,
+      fontWeight: '700' as const,
+      color: colors.surface,
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      gap: 12,
+    },
+    messageInput: {
+      flex: 1,
+      backgroundColor: colors.background,
+      borderRadius: 20,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: colors.text,
+      maxHeight: 100,
+    },
+    sendButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sendButtonDisabled: {
+      opacity: 0.5,
+    },
+  });

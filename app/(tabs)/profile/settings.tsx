@@ -6,7 +6,6 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -48,17 +47,17 @@ export default function SettingsScreen() {
 
   const handleChangePassword = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      Alert.alert('Erro', 'Preencha todos os campos');
+      dialog.alert('Erro', 'Preencha todos os campos');
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem');
+      dialog.alert('Erro', 'As senhas não coincidem');
       return;
     }
 
     if (passwordForm.newPassword.length < 8) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 8 caracteres');
+      dialog.alert('Erro', 'A senha deve ter pelo menos 8 caracteres');
       return;
     }
 
@@ -75,10 +74,10 @@ export default function SettingsScreen() {
         confirmPassword: '',
       });
 
-      Alert.alert('Sucesso', 'Senha alterada com sucesso');
+      dialog.alert('Sucesso', 'Senha alterada com sucesso');
     } catch (error) {
       console.error('Error changing password:', error);
-      Alert.alert('Erro', 'Erro ao alterar senha');
+      dialog.alert('Erro', 'Erro ao alterar senha');
     } finally {
       setIsChangingPassword(false);
     }
