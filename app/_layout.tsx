@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { ThemedDialogProvider } from "@/components/ThemedDialog";
+import LanguageDetector from "@/components/LanguageDetector";
 import { LinearGradient } from 'expo-linear-gradient';
 import "@/i18n";
 
@@ -98,6 +99,7 @@ export default function RootLayout() {
           <AuthProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <ThemedDialogProvider>
+                <LanguageDetector />
                 <AppShell />
               </ThemedDialogProvider>
             </GestureHandlerRootView>
