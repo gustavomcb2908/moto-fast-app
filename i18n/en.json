@@ -1,0 +1,27 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading..."
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": "Notifications",
+    "push_notifications": "Push Notifications",
+    "push_description": "Receive alerts about deliveries and updates",
+    "appearance": "Appearance",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "Automatic",
+    "security": "Security",
+    "change_password": "Change Password",
+    "change_password_desc": "Modify your access password",
+    "two_factor": "Two-Factor Authentication",
+    "two_factor_desc": "Add extra security layer (Coming soon)",
+    "tip_title": "Security tip",
+    "tip_text": "Use a strong password with at least 8 characters, including uppercase, lowercase and numbers.",
+    "language": "Language",
+    "select_language": "Select your language"
+  }
+}

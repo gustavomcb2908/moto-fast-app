@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,9 +14,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, ThemeChoice } from '@/contexts/ThemeContext';
 import { Bell, Moon, Lock, Shield, ChevronRight, SunMedium, Cog } from 'lucide-react-native';
 import { useThemedDialog } from '@/components/ThemedDialog';
+import { useTranslation } from 'react-i18next';
+import i18n, { changeLanguage } from '@/i18n';
 
 export default function SettingsScreen() {
   const { colors, choice, setChoice } = useTheme();
+  const { t } = useTranslation();
   const dialog = useThemedDialog();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -24,6 +27,8 @@ export default function SettingsScreen() {
   const [themeChoice, setThemeChoice] = useState<ThemeChoice>(choice);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [langModalVisible, setLangModalVisible] = useState<boolean>(false);
+  const [currentLang, setCurrentLang] = useState<string>(i18n.language || 'en');
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -42,8 +47,20 @@ export default function SettingsScreen() {
     setChoice(value);
     await AsyncStorage.setItem('@motofast-theme', value);
     console.log('Theme changed:', value);
-    dialog.alert('Tema', 'Tema atualizado com sucesso');
+    dialog.alert(t('settings.appearance'), 'Tema atualizado com sucesso');
   };
+
+  const handleSelectLanguage = useCallback(async (lang: string) => {
+    try {
+      setCurrentLang(lang);
+      await changeLanguage(lang);
+      console.log('Language changed:', lang);
+    } catch (e) {
+      console.log('Language switch error', e);
+    } finally {
+      setLangModalVisible(false);
+    }
+  }, []);
 
   const handleChangePassword = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
@@ -115,18 +132,18 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false} testID="settings-screen">
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Notificações</Text>
+        <Text style={styles.sectionTitle}>{t('settings.notifications')}</Text>
         {renderSettingItem(
           <Bell size={24} color={colors.text} />,
-          'Notificações Push',
-          'Receber notificações sobre entregas e atualizações',
+          t('settings.push_notifications'),
+          t('settings.push_description'),
           pushNotifications,
           handlePushToggle
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Aparência</Text>
+        <Text style={styles.sectionTitle}>{t('settings.appearance')}</Text>
         <View style={styles.themeGroup}>
           <TouchableOpacity
             style={[styles.themeOption, themeChoice === 'light' && styles.themeOptionActive]}
@@ -135,7 +152,7 @@ export default function SettingsScreen() {
             testID="theme-light"
           >
             <View style={styles.themeIcon}><SunMedium size={18} color={colors.text} /></View>
-            <Text style={styles.themeLabel}>Claro</Text>
+            <Text style={styles.themeLabel}>{t('settings.theme_light')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -145,7 +162,7 @@ export default function SettingsScreen() {
             testID="theme-dark"
           >
             <View style={styles.themeIcon}><Moon size={18} color={colors.text} /></View>
-            <Text style={styles.themeLabel}>Escuro</Text>
+            <Text style={styles.themeLabel}>{t('settings.theme_dark')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -155,38 +172,85 @@ export default function SettingsScreen() {
             testID="theme-system"
           >
             <View style={styles.themeIcon}><Cog size={18} color={colors.text} /></View>
-            <Text style={styles.themeLabel}>Automático</Text>
+            <Text style={styles.themeLabel}>{t('settings.theme_system')}</Text>
           </TouchableOpacity>
         </View>
-
-
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Segurança</Text>
+        <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+        <View style={styles.settingItem}>
+          <View style={styles.settingIcon}><Cog size={24} color={colors.text} /></View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>{t('settings.language')}</Text>
+            <Text style={styles.settingDescription}>{t('settings.select_language')}</Text>
+          </View>
+          <TouchableOpacity onPress={() => setLangModalVisible(true)}>
+            <ChevronRight size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('settings.security')}</Text>
         {renderSettingItem(
           <Lock size={24} color={colors.text} />,
-          'Alterar Senha',
-          'Modificar sua senha de acesso',
+          t('settings.change_password'),
+          t('settings.change_password_desc'),
           undefined,
           undefined,
           () => setShowPasswordModal(true)
         )}
         {renderSettingItem(
           <Shield size={24} color={colors.text} />,
-          'Autenticação em Dois Fatores',
-          'Adicionar camada extra de segurança (Em breve)',
+          t('settings.two_factor'),
+          t('settings.two_factor_desc'),
           false,
           () => dialog.alert('Em Breve', 'Funcionalidade em desenvolvimento')
         )}
       </View>
 
       <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>💡 Dica de Segurança</Text>
+        <Text style={styles.infoTitle}>💡 {t('settings.tip_title')}</Text>
         <Text style={styles.infoText}>
-          Use uma senha forte com pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas e números.
+          {t('settings.tip_text')}
         </Text>
       </View>
+
+      <Modal
+        visible={langModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setLangModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t('settings.language')}</Text>
+            <View style={{ gap: 8 }}>
+              {[
+                { label: 'English', value: 'en' },
+                { label: 'Español', value: 'es' },
+                { label: 'Français', value: 'fr' },
+                { label: 'Português (PT)', value: 'pt' },
+                { label: 'Português (BR)', value: 'pt-BR' },
+              ].map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.themeOption, currentLang === opt.value && styles.themeOptionActive]}
+                  onPress={() => handleSelectLanguage(opt.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.settingTitle}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ height: 16 }} />
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setLangModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showPasswordModal}
@@ -196,7 +260,7 @@ export default function SettingsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Alterar Senha</Text>
+            <Text style={styles.modalTitle}>{t('settings.change_password')}</Text>
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Senha Atual</Text>
@@ -240,18 +304,18 @@ export default function SettingsScreen() {
                 onPress={() => setShowPasswordModal(false)}
                 disabled={isChangingPassword}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.confirmButton, isChangingPassword && styles.confirmButtonDisabled]}
                 onPress={handleChangePassword}
                 disabled={isChangingPassword}
->
+              >
                 {isChangingPassword ? (
                   <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  <Text style={styles.confirmButtonText}>{t('common.confirm')}</Text>
                 )}
               </TouchableOpacity>
             </View>

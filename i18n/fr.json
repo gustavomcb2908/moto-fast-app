@@ -1,0 +1,27 @@
+{
+  "common": {
+    "back": "Retour",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "loading": "Chargement..."
+  },
+  "settings": {
+    "title": "Paramètres",
+    "notifications": "Notifications",
+    "push_notifications": "Notifications Push",
+    "push_description": "Recevoir des alertes sur les livraisons et mises à jour",
+    "appearance": "Apparence",
+    "theme_light": "Clair",
+    "theme_dark": "Sombre",
+    "theme_system": "Automatique",
+    "security": "Sécurité",
+    "change_password": "Changer le mot de passe",
+    "change_password_desc": "Modifier votre mot de passe d'accès",
+    "two_factor": "Authentification à deux facteurs",
+    "two_factor_desc": "Ajouter une couche de sécurité (Bientôt)",
+    "tip_title": "Astuce de sécurité",
+    "tip_text": "Utilisez un mot de passe fort d'au moins 8 caractères, incluant des majuscules, minuscules et des chiffres.",
+    "language": "Langue",
+    "select_language": "Sélectionnez votre langue"
+  }
+}

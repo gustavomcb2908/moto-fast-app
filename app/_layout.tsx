@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { ThemedDialogProvider } from "@/components/ThemedDialog";
 import { LinearGradient } from 'expo-linear-gradient';
+import "@/i18n";
 
 SplashScreen.preventAutoHideAsync();
 
