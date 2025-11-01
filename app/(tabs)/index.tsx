@@ -74,7 +74,7 @@ export default function HomeScreen() {
               renderAlert(
                 alert.type,
                 alert.message,
-                alert.type === 'warning' ? () => router.push('/rental') : undefined
+                alert.type === 'warning' ? () => router.push('/(tabs)/rental') : undefined
               )
             )}
           </View>
@@ -137,7 +137,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push('/rental')}
+            onPress={() => router.push('/(tabs)/rental')}
           >
             <View style={[styles.actionIconContainer, { backgroundColor: colors.success }]}>
               <DollarSign size={24} color={colors.surface} />

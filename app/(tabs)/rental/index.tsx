@@ -135,7 +135,7 @@ export default function RentalScreen() {
               <TouchableOpacity
                 style={[styles.alertCard, { backgroundColor: colors.warning + '10' }]}
                 activeOpacity={0.7}
-                onPress={() => router.push('invoices' as any)}
+                onPress={() => router.push('/(tabs)/rental/invoices')}
               >
                 <AlertTriangle size={20} color={colors.warning} />
                 <View style={styles.alertContent}>
@@ -175,7 +175,7 @@ export default function RentalScreen() {
             <FileText size={24} color={colors.primary} />,
             'Faturas',
             'Ver e pagar faturas',
-            () => router.push('invoices' as any),
+            () => router.push('/(tabs)/rental/invoices'),
             nextInvoice
               ? { text: `€${Number(nextInvoice.amount).toFixed(2)}`, color: colors.warning }
               : undefined
@@ -184,7 +184,7 @@ export default function RentalScreen() {
             <CreditCard size={24} color={colors.success} />,
             'Formas de Pagamento',
             'Pagar agora via Stripe',
-            () => router.push('pay' as any)
+            () => router.push('/(tabs)/rental/pay')
           )}
         </View>
 
@@ -194,7 +194,7 @@ export default function RentalScreen() {
             <FileText size={24} color={colors.text} />,
             'Anexos',
             'Comprovativos enviados',
-            () => router.push('attachments' as any)
+            () => router.push('/(tabs)/rental/attachments')
           )}
         </View>
 
@@ -204,7 +204,7 @@ export default function RentalScreen() {
             <Calendar size={24} color={colors.primary} />,
             'Histórico Financeiro',
             'Pagamentos e faturas',
-            () => router.push('history' as any)
+            () => router.push('/(tabs)/rental/history')
           )}
         </View>
 
