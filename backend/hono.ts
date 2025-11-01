@@ -51,4 +51,16 @@ app.get("/", (c) => {
   return c.json({ status: "ok", message: "API is running" });
 });
 
+app.get("/api/health", (c) => {
+  return c.json({ 
+    status: "ok", 
+    message: "Backend is running",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      trpc: "/api/trpc",
+      admin: "/api/admin"
+    }
+  });
+});
+
 export default app;

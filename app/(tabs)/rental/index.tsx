@@ -13,11 +13,38 @@ import {
   Calendar,
 } from 'lucide-react-native';
 import { trpc } from '@/lib/trpc';
+import Constants from 'expo-constants';
 
 export default function RentalScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { data, isLoading, error, refetch } = trpc.rental.getSummary.useQuery({});
+  const { data, isLoading, error, refetch } = trpc.rental.getSummary.useQuery({}, {
+    retry: 2,
+    retryDelay: 1000,
+  });
+
+  React.useEffect(() => {
+    console.log('🔍 Backend URL config:');
+    console.log('  EXPO_PUBLIC_BACKEND_URL:', process.env.EXPO_PUBLIC_BACKEND_URL);
+    console.log('  EXPO_PUBLIC_RORK_API_BASE_URL:', process.env.EXPO_PUBLIC_RORK_API_BASE_URL);
+    const hostUri = (Constants as any)?.expoConfig?.hostUri || (Constants as any)?.manifest2?.hostUri || (Constants as any)?.manifest?.hostUri;
+    console.log('  hostUri:', hostUri);
+  }, []);
+
+  React.useEffect(() => {
+    if (error) {
+      console.error('❌ Erro ao carregar dados da locadora:', error);
+      console.error('❌ Mensagem:', error.message);
+      console.error('❌ Dados completos:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+  }, [error]);
+
+  React.useEffect(() => {
+    if (data) {
+      console.log('✅ Dados da locadora carregados com sucesso');
+      console.log('✅ Vehicle:', data?.data?.vehicle);
+    }
+  }, [data]);
 
   const vehicle = data?.data?.vehicle;
   const nextInvoice = data?.data?.nextInvoice as { id: string; amount: number; dueDate: string; status: string } | undefined;
@@ -59,9 +86,16 @@ export default function RentalScreen() {
   }
 
   if (error || !vehicle) {
+    const errorMessage = error?.message || error?.toString() || 'Erro desconhecido';
+    const errorData = error?.data as any;
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 16 }]}> 
-        <Text style={{ color: colors.error, marginBottom: 12 }}>Falha ao carregar dados</Text>
+        <Text style={{ color: colors.error, marginBottom: 4, fontSize: 16, fontWeight: '600' as const }}>Falha ao carregar dados</Text>
+        <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 13, textAlign: 'center' }}>{errorMessage}</Text>
+        {errorData?.httpStatus && (
+          <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 11, textAlign: 'center' }}>Status HTTP: {errorData.httpStatus}</Text>
+        )}
+        <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 11, textAlign: 'center', opacity: 0.7 }}>Verifique o console para mais detalhes</Text>
         <TouchableOpacity onPress={() => refetch()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
           <Text style={{ color: '#fff', fontWeight: '700' as const }}>Tentar novamente</Text>
         </TouchableOpacity>
