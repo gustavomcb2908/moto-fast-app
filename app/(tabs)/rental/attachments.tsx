@@ -1,20 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { Paperclip, UploadCloud } from 'lucide-react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { trpc } from '@/lib/trpc';
+import { usePermissionManager } from '@/utils/permissions';
 
 export default function AttachmentsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [file, setFile] = useState<{ uri: string } | null>(null);
+  const perms = usePermissionManager();
   const params = useLocalSearchParams<{ invoiceId?: string; paymentId?: string }>();
   const uploadMutation = trpc.rental.attachments.upload.useMutation();
 
   const pickFile = async () => {
     try {
+      const granted = await perms.requestMediaLibrary();
+      if (!granted.granted) return;
       const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: false, quality: 0.8 });
       if (res.canceled) return;
       const asset = res.assets?.[0];
@@ -32,6 +36,7 @@ export default function AttachmentsScreen() {
       Alert.alert('Anexo', 'Comprovativo enviado com sucesso!');
       setFile(null);
     } catch (e: any) {
+      console.log('Upload error', e);
       Alert.alert('Erro', e?.message ?? 'Falha ao enviar comprovativo');
     }
   };
@@ -54,7 +59,7 @@ export default function AttachmentsScreen() {
 
         <TouchableOpacity style={styles.button} onPress={pickFile} activeOpacity={0.8} testID="pick-proof">
           <UploadCloud size={18} color="#fff" />
-          <Text style={styles.buttonText}>Selecionar arquivo</Text>
+          <Text style={styles.buttonText}>{Platform.OS === 'web' ? 'Selecionar ficheiro' : 'Selecionar arquivo'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.button, { backgroundColor: colors.success, opacity: uploadMutation.isPending ? 0.7 : 1 }]} onPress={upload} activeOpacity={0.8} disabled={!file?.uri || uploadMutation.isPending} testID="upload-proof">

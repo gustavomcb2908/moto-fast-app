@@ -5,6 +5,7 @@ import { CreditCard } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { trpc } from '@/lib/trpc';
+import { router } from 'expo-router';
 
 export default function PayScreen() {
   const { colors } = useTheme();
@@ -13,6 +14,7 @@ export default function PayScreen() {
   const params = useLocalSearchParams<{ invoiceId?: string; amount?: string }>();
 
   const invoicesQuery = trpc.rental.listInvoices.useQuery({}, { enabled: !params.invoiceId });
+  const utils = trpc.useUtils();
   const intentMutation = trpc.rental.payments.intent.useMutation();
   const confirmMutation = trpc.rental.payments.confirm.useMutation();
 
@@ -52,7 +54,10 @@ export default function PayScreen() {
       if (!targetInvoice) return;
       setLoading(true);
       await confirmMutation.mutateAsync({ invoiceId: targetInvoice.id });
+      await utils.rental.listInvoices.invalidate();
+      await utils.rental.payments.history.invalidate();
       Alert.alert('Pagamento', 'Pagamento confirmado com sucesso!');
+      try { router.back(); } catch {}
     } catch (e: any) {
       Alert.alert('Erro', e?.message ?? 'Não foi possível confirmar');
     } finally {
