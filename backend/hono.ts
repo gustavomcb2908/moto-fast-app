@@ -42,6 +42,11 @@ app.use(
     endpoint: "/api/trpc",
     router: appRouter,
     createContext,
+    onError(opts) {
+      console.error('❌ tRPC Error:', opts.error);
+      console.error('   Path:', opts.path);
+      console.error('   Type:', opts.type);
+    },
   })
 );
 

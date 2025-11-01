@@ -59,19 +59,28 @@ export const trpcClient = trpc.createClient({
         }
       },
       fetch(url, options) {
+        console.log('🚀 tRPC Request:', {
+          url: String(url),
+          method: options?.method,
+        });
         return fetch(url, options).then(async (res) => {
           try {
             const ct = res.headers.get("content-type") ?? "";
+            console.log('⬇️ tRPC Response:', {
+              url: String(url),
+              status: res.status,
+              contentType: ct,
+            });
             if (!ct.includes("application/json")) {
               const text = await res.clone().text();
-              console.log("tRPC non-JSON response", {
+              console.log("❌ tRPC non-JSON response", {
                 url: String(url),
                 status: res.status,
-                text: text.slice(0, 300),
+                text: text.slice(0, 500),
               });
             }
           } catch (err) {
-            console.log("tRPC fetch inspector error", err);
+            console.log("❌ tRPC fetch inspector error", err);
           }
           return res;
         });

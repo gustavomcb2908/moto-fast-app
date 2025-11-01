@@ -3,8 +3,9 @@ import { z } from 'zod';
 
 export const getSummaryProcedure = publicProcedure
   .input(z.object({ courierId: z.string().optional() }).optional())
-  .query(async () => {
+  .query(async (opts) => {
     console.log('📦 getSummaryProcedure chamado');
+    console.log('   Input:', opts.input);
     const userId = 'demo';
     const data = {
       vehicle: { 
@@ -24,7 +25,8 @@ export const getSummaryProcedure = publicProcedure
       lastPayments: [
         { id: 'tx_123', amount: 150, date: new Date(Date.now()-31*86400000).toISOString(), status: 'succeeded' as const },
       ],
-    } as const;
-    console.log('✅ getSummaryProcedure retornando dados:', data);
-    return { success: true, data, userId } as const;
+    };
+    const result = { success: true, data, userId };
+    console.log('✅ getSummaryProcedure retornando:', JSON.stringify(result).substring(0, 200));
+    return result;
   });
