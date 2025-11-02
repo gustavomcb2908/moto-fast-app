@@ -4,8 +4,9 @@ import superjson from "superjson";
 import { Platform } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import type { AppRouter } from '@/backend/trpc/app-router';
 
-export const trpc = createTRPCReact();
+export const trpc = createTRPCReact<AppRouter>();
 
 const sanitizeUrl = (url: string) => url.replace(/\/$/, "");
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
@@ -40,7 +41,7 @@ const getBaseUrl = () => {
   return "";
 };
 
-export const trpcClient = (trpc as any).createClient({
+export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: `${getBaseUrl()}/api/trpc`,
@@ -72,11 +73,12 @@ export const trpcClient = (trpc as any).createClient({
             });
             if (!ct.includes("application/json")) {
               const text = await res.clone().text();
-              console.log("❌ tRPC non-JSON response", {
+              console.error("❌ tRPC non-JSON response", {
                 url: String(url),
                 status: res.status,
                 text: text.slice(0, 500),
               });
+              throw new Error(`Resposta inválida do servidor (${res.status}): ${text.slice(0, 120)}`);
             }
           } catch (err) {
             console.log("❌ tRPC fetch inspector error", err);
