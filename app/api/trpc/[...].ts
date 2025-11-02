@@ -1,4 +1,4 @@
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 async function getApp() {
   const mod = await import('@/backend/hono');
