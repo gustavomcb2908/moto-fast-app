@@ -1,13 +1,16 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import type { Order } from './backgroundTasks';
 
 let Notifications: any = null;
 let Device: any = null;
 let isExpoGoEnvironment = false;
 
-try {
-  if (Platform.OS !== 'web') {
+const isRunningInExpoGo = Constants.appOwnership === 'expo';
+
+if (Platform.OS !== 'web' && !isRunningInExpoGo) {
+  try {
     Notifications = require('expo-notifications');
     Device = require('expo-device');
     
@@ -23,9 +26,12 @@ try {
         }),
       });
     }
+  } catch (error) {
+    console.log('⚠️ Expo Notifications not available. Using fallback mode.');
+    isExpoGoEnvironment = true;
   }
-} catch (error) {
-  console.log('⚠️ Expo Notifications not available (running in Expo Go). Using fallback mode.');
+} else {
+  console.log('⚠️ Running in Expo Go or Web. Push notifications disabled.');
   isExpoGoEnvironment = true;
 }
 
