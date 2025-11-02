@@ -1,27 +1,48 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Stack } from 'expo-router';
-import { mockOrders, Order } from '@/constants/mockData';
 import { useTheme } from '@/contexts/ThemeContext';
-import { MapPin, Clock, DollarSign, CheckCircle, Circle, PlayCircle } from 'lucide-react-native';
+import { useOrders } from '@/contexts/OrdersContext';
+import { MapPin, Clock, DollarSign, CheckCircle, Circle, PlayCircle, Power } from 'lucide-react-native';
+import type { Order } from '@/services/backgroundTasks';
 
 export default function OrdersScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const [orders] = useState<Order[]>(mockOrders);
+  const {
+    availableOrders,
+    activeOrder,
+    completedOrders,
+    isLoading,
+    isOnline,
+    acceptOrder,
+    rejectOrder,
+    markAsPickedUp,
+    markAsDelivered,
+    toggleOnlineStatus,
+    refreshOrders,
+  } = useOrders();
+
+  const allOrders: Order[] = useMemo(() => {
+    const orders: Order[] = [];
+    if (activeOrder) orders.push(activeOrder);
+    orders.push(...availableOrders);
+    orders.push(...completedOrders.slice(0, 10));
+    return orders;
+  }, [activeOrder, availableOrders, completedOrders]);
 
   const getStatusConfig = (status: Order['status']) => {
     switch (status) {
       case 'pending':
-        return { label: 'Pendente', color: colors.warning, icon: Circle };
+        return { label: 'Disponível', color: colors.warning, icon: Circle };
       case 'accepted':
         return { label: 'Aceite', color: colors.info, icon: PlayCircle };
-      case 'in_progress':
-        return { label: 'Em Curso', color: colors.primary, icon: PlayCircle };
-      case 'completed':
-        return { label: 'Concluída', color: colors.success, icon: CheckCircle };
+      case 'picked_up':
+        return { label: 'Recolhido', color: colors.primary, icon: PlayCircle };
+      case 'delivered':
+        return { label: 'Entregue', color: colors.success, icon: CheckCircle };
       default:
-        return { label: 'Cancelada', color: colors.error, icon: Circle };
+        return { label: 'Cancelado', color: colors.error, icon: Circle };
     }
   };
 
@@ -30,9 +51,8 @@ export default function OrdersScreen() {
     const StatusIcon = statusConfig.icon;
 
     return (
-      <TouchableOpacity
+      <View
         style={styles.orderCard}
-        activeOpacity={0.7}
         testID={`order-${item.id}`}
       >
         <View style={styles.orderHeader}>
@@ -48,30 +68,26 @@ export default function OrdersScreen() {
           </View>
         </View>
 
-        <Text style={styles.clientName}>{item.clientName}</Text>
-
-        {item.pickupAddress && (
-          <View style={styles.addressRow}>
-            <MapPin size={16} color={colors.primary} />
-            <Text style={styles.addressLabel}>Recolha:</Text>
-            <Text style={styles.addressText} numberOfLines={1}>
-              {item.pickupAddress}
-            </Text>
-          </View>
-        )}
+        <View style={styles.addressRow}>
+          <MapPin size={16} color={colors.primary} />
+          <Text style={styles.addressLabel}>Recolha:</Text>
+          <Text style={styles.addressText} numberOfLines={1}>
+            {item.pickup.address}
+          </Text>
+        </View>
 
         <View style={styles.addressRow}>
           <MapPin size={16} color={colors.success} />
           <Text style={styles.addressLabel}>Entrega:</Text>
           <Text style={styles.addressText} numberOfLines={1}>
-            {item.address}
+            {item.delivery.address}
           </Text>
         </View>
 
         <View style={styles.orderFooter}>
           <View style={styles.infoItem}>
             <Clock size={14} color={colors.textSecondary} />
-            <Text style={styles.infoText}>{item.timeWindow}</Text>
+            <Text style={styles.infoText}>~{item.estimatedTime}min</Text>
           </View>
           <View style={styles.infoItem}>
             <MapPin size={14} color={colors.textSecondary} />
@@ -81,29 +97,41 @@ export default function OrdersScreen() {
 
         {item.status === 'pending' && (
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.rejectButton}>
+            <TouchableOpacity
+              style={styles.rejectButton}
+              onPress={() => rejectOrder(item.id)}
+            >
               <Text style={styles.rejectButtonText}>Recusar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.acceptButton}>
+            <TouchableOpacity
+              style={styles.acceptButton}
+              onPress={() => acceptOrder(item.id)}
+            >
               <Text style={styles.acceptButtonText}>Aceitar</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {item.status === 'accepted' && (
-          <TouchableOpacity style={styles.startButton}>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={() => markAsPickedUp()}
+          >
             <PlayCircle size={20} color={colors.surface} />
-            <Text style={styles.startButtonText}>Iniciar Entrega</Text>
+            <Text style={styles.startButtonText}>Marcar como Recolhido</Text>
           </TouchableOpacity>
         )}
 
-        {item.status === 'in_progress' && (
-          <TouchableOpacity style={styles.completeButton}>
+        {item.status === 'picked_up' && (
+          <TouchableOpacity
+            style={styles.completeButton}
+            onPress={() => markAsDelivered()}
+          >
             <CheckCircle size={20} color={colors.surface} />
-            <Text style={styles.completeButtonText}>Concluir Entrega</Text>
+            <Text style={styles.completeButtonText}>Marcar como Entregue</Text>
           </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -115,21 +143,66 @@ export default function OrdersScreen() {
           title: 'Pedidos',
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={toggleOnlineStatus}
+              style={{ marginRight: 16 }}
+            >
+              <Power
+                size={24}
+                color={isOnline ? colors.success : colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
       <View style={styles.container}>
-        <FlatList
-          data={orders}
-          renderItem={renderOrder}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Nenhum pedido disponível</Text>
-            </View>
-          }
-        />
+        {isOnline && (
+          <View style={styles.onlineBanner}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineText}>Online - Recebendo pedidos</Text>
+          </View>
+        )}
+        
+        {isLoading && allOrders.length === 0 ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Carregando pedidos...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={allOrders}
+            renderItem={renderOrder}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={refreshOrders}
+                tintColor={colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {isOnline
+                    ? 'Nenhum pedido disponível no momento'
+                    : 'Você está offline. Ative para receber pedidos.'}
+                </Text>
+                {!isOnline && (
+                  <TouchableOpacity
+                    style={styles.goOnlineButton}
+                    onPress={toggleOnlineStatus}
+                  >
+                    <Power size={20} color={colors.surface} />
+                    <Text style={styles.goOnlineText}>Ficar Online</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            }
+          />
+        )}
       </View>
     </>
   );
@@ -139,6 +212,35 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  onlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success + '15',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.success,
+  },
+  onlineText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.success,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
   },
   listContent: {
     padding: 16,
@@ -283,9 +385,26 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
+    gap: 16,
   },
   emptyText: {
     fontSize: 16,
     color: colors.textSecondary,
+    textAlign: 'center' as const,
+  },
+  goOnlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    marginTop: 8,
+  },
+  goOnlineText: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: colors.surface,
   },
 });

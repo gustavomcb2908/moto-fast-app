@@ -3,13 +3,15 @@ import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
+import { View, Text, Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { OrdersProvider } from "@/contexts/OrdersContext";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { ThemedDialogProvider } from "@/components/ThemedDialog";
 import LanguageDetector from "@/components/LanguageDetector";
 import { LinearGradient } from 'expo-linear-gradient';
+import { registerBackgroundFetchAsync } from '@/services/backgroundTasks';
 import "@/i18n";
 import { useTranslation } from 'react-i18next';
 
@@ -80,6 +82,14 @@ function AppShell() {
     return () => clearTimeout(t);
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (isAuthenticated && Platform.OS !== 'web') {
+      registerBackgroundFetchAsync().catch((err) => {
+        console.error('Failed to register background fetch:', err);
+      });
+    }
+  }, [isAuthenticated]);
+
   return (
     <View style={{ flex: 1 }}>
       <RootLayoutNav />
@@ -99,12 +109,14 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <ThemedDialogProvider>
-                <LanguageDetector />
-                <AppShell />
-              </ThemedDialogProvider>
-            </GestureHandlerRootView>
+            <OrdersProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <ThemedDialogProvider>
+                  <LanguageDetector />
+                  <AppShell />
+                </ThemedDialogProvider>
+              </GestureHandlerRootView>
+            </OrdersProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
