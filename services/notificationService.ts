@@ -1,19 +1,33 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Order } from './backgroundTasks';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
+let Notifications: any = null;
+let Device: any = null;
+let isExpoGoEnvironment = false;
+
+try {
+  if (Platform.OS !== 'web') {
+    Notifications = require('expo-notifications');
+    Device = require('expo-device');
+    
+    if (Notifications && Notifications.setNotificationHandler) {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+          priority: Notifications.AndroidNotificationPriority?.HIGH,
+        }),
+      });
+    }
+  }
+} catch (error) {
+  console.log('⚠️ Expo Notifications not available (running in Expo Go). Using fallback mode.');
+  isExpoGoEnvironment = true;
+}
 
 export interface NotificationPermissionStatus {
   granted: boolean;
@@ -23,11 +37,21 @@ export interface NotificationPermissionStatus {
 
 class NotificationService {
   private expoPushToken: string | null = null;
+  private isAvailable: boolean = false;
+
+  constructor() {
+    this.isAvailable = !isExpoGoEnvironment && Notifications != null && Platform.OS !== 'web';
+  }
 
   async initialize(): Promise<void> {
     try {
       if (Platform.OS === 'web') {
         console.log('⚠️ Push notifications not supported on web');
+        return;
+      }
+
+      if (!this.isAvailable) {
+        console.log('⚠️ Notifications not available in Expo Go. Use a development build for full notification support.');
         return;
       }
 
@@ -47,7 +71,9 @@ class NotificationService {
   }
 
   private async setupNotificationChannels(): Promise<void> {
-    if (Platform.OS === 'android') {
+    if (!this.isAvailable || Platform.OS !== 'android') return;
+
+    try {
       await Notifications.setNotificationChannelAsync('orders', {
         name: 'Pedidos de Entrega',
         importance: Notifications.AndroidImportance.HIGH,
@@ -70,35 +96,48 @@ class NotificationService {
         sound: 'default',
         enableVibrate: true,
       });
+    } catch (error) {
+      console.error('❌ Error setting up notification channels:', error);
     }
   }
 
   private async setupNotificationCategories(): Promise<void> {
-    await Notifications.setNotificationCategoryAsync('order', [
-      {
-        identifier: 'accept',
-        buttonTitle: 'Aceitar',
-        options: {
-          opensAppToForeground: true,
+    if (!this.isAvailable) return;
+
+    try {
+      await Notifications.setNotificationCategoryAsync('order', [
+        {
+          identifier: 'accept',
+          buttonTitle: 'Aceitar',
+          options: {
+            opensAppToForeground: true,
+          },
         },
-      },
-      {
-        identifier: 'reject',
-        buttonTitle: 'Recusar',
-        options: {
-          opensAppToForeground: false,
+        {
+          identifier: 'reject',
+          buttonTitle: 'Recusar',
+          options: {
+            opensAppToForeground: false,
+          },
         },
-      },
-    ]);
+      ]);
+    } catch (error) {
+      console.error('❌ Error setting up notification categories:', error);
+    }
   }
 
   async registerForPushNotificationsAsync(): Promise<string | null> {
     try {
+      if (!this.isAvailable) {
+        console.log('⚠️ Push notifications not available');
+        return null;
+      }
+
       if (Platform.OS === 'web') {
         return null;
       }
 
-      if (!Device.isDevice) {
+      if (!Device?.isDevice) {
         console.log('⚠️ Push notifications only work on physical devices');
         return null;
       }
@@ -144,7 +183,7 @@ class NotificationService {
         body: JSON.stringify({ 
           token,
           platform: Platform.OS,
-          deviceId: Device.modelId,
+          deviceId: Device?.modelId || 'unknown',
         }),
       });
 
@@ -157,6 +196,11 @@ class NotificationService {
   }
 
   async sendNewOrderNotification(order: Order): Promise<void> {
+    if (!this.isAvailable) {
+      console.log('📱 New order (fallback mode):', order.id);
+      return;
+    }
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -168,7 +212,7 @@ class NotificationService {
             order,
           },
           sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+          priority: Notifications.AndroidNotificationPriority?.HIGH,
           categoryIdentifier: 'order',
         },
         trigger: null,
@@ -180,6 +224,11 @@ class NotificationService {
   }
 
   async sendOrderUpdateNotification(orderId: string, status: string, message: string): Promise<void> {
+    if (!this.isAvailable) {
+      console.log('📱 Order update (fallback mode):', orderId, status);
+      return;
+    }
+
     try {
       const statusEmoji = {
         accepted: '✅',
@@ -198,7 +247,7 @@ class NotificationService {
             status,
           },
           sound: true,
-          priority: Notifications.AndroidNotificationPriority.DEFAULT,
+          priority: Notifications.AndroidNotificationPriority?.DEFAULT,
         },
         trigger: null,
       });
@@ -209,6 +258,11 @@ class NotificationService {
   }
 
   async sendMessageNotification(from: string, message: string): Promise<void> {
+    if (!this.isAvailable) {
+      console.log('📱 New message (fallback mode):', from);
+      return;
+    }
+
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -219,7 +273,7 @@ class NotificationService {
             from,
           },
           sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH,
+          priority: Notifications.AndroidNotificationPriority?.HIGH,
         },
         trigger: null,
       });
@@ -230,6 +284,14 @@ class NotificationService {
   }
 
   async checkPermissions(): Promise<NotificationPermissionStatus> {
+    if (!this.isAvailable) {
+      return {
+        granted: false,
+        canAskAgain: false,
+        status: 'unavailable',
+      };
+    }
+
     try {
       const { status, canAskAgain } = await Notifications.getPermissionsAsync();
       return {
@@ -248,6 +310,10 @@ class NotificationService {
   }
 
   async requestPermissions(): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       const { status } = await Notifications.requestPermissionsAsync();
       return status === 'granted';
@@ -261,21 +327,39 @@ class NotificationService {
     return this.expoPushToken;
   }
 
-  setupNotificationReceivedListener(handler: (notification: Notifications.Notification) => void) {
+  setupNotificationReceivedListener(handler: (notification: any) => void) {
+    if (!this.isAvailable) {
+      return { remove: () => {} };
+    }
     return Notifications.addNotificationReceivedListener(handler);
   }
 
-  setupNotificationResponseListener(handler: (response: Notifications.NotificationResponse) => void) {
+  setupNotificationResponseListener(handler: (response: any) => void) {
+    if (!this.isAvailable) {
+      return { remove: () => {} };
+    }
     return Notifications.addNotificationResponseReceivedListener(handler);
   }
 
   async cancelAllNotifications(): Promise<void> {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await Notifications.dismissAllNotificationsAsync();
+    if (!this.isAvailable) return;
+
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await Notifications.dismissAllNotificationsAsync();
+    } catch (error) {
+      console.error('❌ Error cancelling notifications:', error);
+    }
   }
 
   async setBadgeCount(count: number): Promise<void> {
-    await Notifications.setBadgeCountAsync(count);
+    if (!this.isAvailable) return;
+
+    try {
+      await Notifications.setBadgeCountAsync(count);
+    } catch (error) {
+      console.error('❌ Error setting badge count:', error);
+    }
   }
 }
 
