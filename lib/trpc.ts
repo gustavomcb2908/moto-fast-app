@@ -26,8 +26,8 @@ const getBaseUrl = () => {
     return sanitizeUrl(rawEnv);
   }
 
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.location?.origin) {
-    return sanitizeUrl(window.location.origin);
+  if (Platform.OS === "web") {
+    return "";
   }
 
   const hostUri = (Constants as any)?.expoConfig?.hostUri || (Constants as any)?.manifest2?.hostUri || (Constants as any)?.manifest?.hostUri;
@@ -44,18 +44,19 @@ const getBaseUrl = () => {
 export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: `${getBaseUrl()}/api/trpc`,
       transformer: superjson,
+      url: `${getBaseUrl()}/api/trpc`,
       async headers() {
         try {
           const token = await AsyncStorage.getItem('access_token');
           const lang = (await AsyncStorage.getItem('@motofast-language')) ?? (await AsyncStorage.getItem('user_language')) ?? undefined;
           return {
+            'content-type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(lang ? { 'Accept-Language': lang } : {}),
           } as Record<string, string>;
         } catch {
-          return {} as Record<string, string>;
+          return { 'content-type': 'application/json' } as Record<string, string>;
         }
       },
       fetch(url, options) {
