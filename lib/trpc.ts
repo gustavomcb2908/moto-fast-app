@@ -1,12 +1,11 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@/backend/trpc/app-router";
 import superjson from "superjson";
 import { Platform } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-export const trpc = createTRPCReact<AppRouter>();
+export const trpc = createTRPCReact();
 
 const sanitizeUrl = (url: string) => url.replace(/\/$/, "");
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
@@ -41,7 +40,7 @@ const getBaseUrl = () => {
   return "";
 };
 
-export const trpcClient = trpc.createClient({
+export const trpcClient = (trpc as any).createClient({
   links: [
     httpBatchLink({
       url: `${getBaseUrl()}/api/trpc`,
