@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getBaseUrl } from '@/lib/trpc';
 
 export type WebSocketMessage = {
   type: 'new_order' | 'order_update' | 'order_cancelled' | 'ping';
@@ -41,8 +42,13 @@ class WebSocketService {
         return;
       }
 
-      const wsProtocol = process.env.EXPO_PUBLIC_API_URL?.startsWith('https') ? 'wss' : 'ws';
-      const wsHost = process.env.EXPO_PUBLIC_API_URL?.replace(/^https?:\/\//, '') || 'localhost:3000';
+      const base = getBaseUrl();
+      if (!base) {
+        console.log('⚠️ Missing backend URL; skipping WebSocket connection');
+        return;
+      }
+      const wsProtocol = base.startsWith('https') ? 'wss' : 'ws';
+      const wsHost = base.replace(/^https?:\/\//, '');
       this.url = `${wsProtocol}://${wsHost}/ws?token=${token}&userId=${userId}`;
 
       console.log('🔌 Connecting to WebSocket...');

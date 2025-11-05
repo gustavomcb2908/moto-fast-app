@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getBaseUrl } from '@/lib/trpc';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -47,7 +48,9 @@ async function sendLocationToServer(location: Location.LocationObject) {
       return;
     }
 
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/location/update`, {
+    const base = getBaseUrl();
+    if (!base) return;
+    const response = await fetch(`${base}/api/location/update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

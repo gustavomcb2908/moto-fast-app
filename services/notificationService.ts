@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import type { Order } from './backgroundTasks';
+import { getBaseUrl } from '@/lib/trpc';
 
 let Notifications: any = null;
 let Device: any = null;
@@ -180,7 +181,9 @@ class NotificationService {
         return;
       }
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/notifications/register`, {
+      const base = getBaseUrl();
+      if (!base) return;
+      const response = await fetch(`${base}/api/notifications/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

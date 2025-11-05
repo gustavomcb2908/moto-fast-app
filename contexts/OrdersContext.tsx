@@ -47,7 +47,7 @@ export const [OrdersProvider, useOrders] = createContextHook(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.isAuthenticated, auth.user?.id]);
 
-  const initializeServices = async () => { let isMounted = true;
+  const initializeServices = async () => {
     try {
       if (Platform.OS !== 'web') {
         await notificationService.initialize();
@@ -59,7 +59,7 @@ export const [OrdersProvider, useOrders] = createContextHook(() => {
         
         const unsubscribe = websocketService.subscribe(handleWebSocketMessage);
         
-        if (isMounted) { setOrdersState(prev => ({ ...prev, isOnline: true })); }
+        setOrdersState(prev => ({ ...prev, isOnline: true }));
 
         return () => {
           unsubscribe();
@@ -68,9 +68,7 @@ export const [OrdersProvider, useOrders] = createContextHook(() => {
     } catch (error) {
       console.error('❌ Failed to initialize services:', error);
     } finally {
-      if (isMounted) {
-        setOrdersState(prev => ({ ...prev, isLoading: false }));
-      }
+      setOrdersState(prev => ({ ...prev, isLoading: false }));
     }
   };
 

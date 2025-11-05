@@ -11,16 +11,17 @@ export const trpc = createTRPCReact<AppRouter>();
 const sanitizeUrl = (url: string) => url.replace(/\/$/, "");
 const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   const envCandidates = [
     process.env.EXPO_PUBLIC_BACKEND_URL,
     process.env.EXPO_PUBLIC_RORK_API_BASE_URL,
+    process.env.EXPO_PUBLIC_API_URL,
   ].filter(Boolean) as string[];
 
   const rawEnv = envCandidates[0] ?? "";
   if (rawEnv) {
     if (!isHttpUrl(rawEnv)) {
-      console.error("Invalid EXPO_PUBLIC_BACKEND_URL. Must start with http:// or https://");
+      console.error("Invalid backend URL. Must start with http:// or https://");
       return "";
     }
     return sanitizeUrl(rawEnv);
