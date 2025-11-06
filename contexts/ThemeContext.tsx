@@ -24,36 +24,36 @@ export interface ThemeColors {
 
 const LIGHT: ThemeColors = {
   background: '#FFFFFF',
-  text: '#111111',
-  primary: '#00C853',
-  card: '#F7F7F7',
-  border: '#E0E0E0',
-  accent: '#00C853',
+  text: '#1A1A1A',
+  primary: '#D7263D',
+  card: '#F5F5F5',
+  border: '#E5E5E5',
+  accent: '#27AE60',
   surface: '#FFFFFF',
-  surfaceAlt: '#F3F4F6',
-  textSecondary: '#6B7280',
+  surfaceAlt: '#F7F7F7',
+  textSecondary: '#6B6B6B',
   textLight: '#9CA3AF',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  success: '#27AE60',
+  warning: '#F2C94C',
+  error: '#EB5757',
+  info: '#2F80ED',
 };
 
 const DARK: ThemeColors = {
   background: '#121212',
-  text: '#EAEAEA',
-  primary: '#00C853',
-  card: '#1E1E1E',
-  border: '#333333',
-  accent: '#00C853',
+  text: '#EDEDED',
+  primary: '#D7263D',
+  card: '#1A1A1A',
+  border: '#2A2A2A',
+  accent: '#27AE60',
   surface: '#1E1E1E',
-  surfaceAlt: '#212121',
+  surfaceAlt: '#222222',
   textSecondary: '#B3B3B3',
   textLight: '#9CA3AF',
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
+  success: '#27AE60',
+  warning: '#F2C94C',
+  error: '#EB5757',
+  info: '#2F80ED',
 };
 
 interface ThemeState {
@@ -67,7 +67,7 @@ const STORAGE_KEY = '@motofast-theme';
 
 export const [ThemeProvider, useTheme] = createContextHook<ThemeState>(() => {
   const system = useColorScheme();
-  const [choice, setChoice] = useState<ThemeChoice>('system');
+  const [choice, setChoice] = useState<ThemeChoice>('dark');
   const [hydrated, setHydrated] = useState<boolean>(false);
   const loadedRef = useRef<boolean>(false);
 

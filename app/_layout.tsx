@@ -49,10 +49,22 @@ function AppSplashOverlay() {
 }
 
 function RootLayoutNav() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
+  const fade = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
+      Animated.timing(fade, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+    });
+  }, [isDark]);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }} testID="root-layout-bg">
+    <View style={{ flex: 1 }} testID="root-layout-bg">
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}
+        accessibilityLabel="theme-fade-overlay"
+      />
       <Stack screenOptions={{ headerBackTitle: t('common.back') }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />

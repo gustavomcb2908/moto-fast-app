@@ -5,6 +5,8 @@ const extra = ((Constants as any)?.expoConfig?.extra ?? {}) as Record<string, st
 
 const RAW_URL = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra.EXPO_PUBLIC_SUPABASE_URL ?? extra.supabaseUrl ?? '').trim();
 const RAW_KEY = (process.env.EXPO_PUBLIC_SUPABASE_KEY ?? extra.EXPO_PUBLIC_SUPABASE_KEY ?? extra.supabaseKey ?? '').trim();
+if (!RAW_URL) console.warn('[env] EXPO_PUBLIC_SUPABASE_URL is empty');
+if (!RAW_KEY) console.warn('[env] EXPO_PUBLIC_SUPABASE_KEY is empty');
 
 const hasValidUrl = !!RAW_URL && /^https?:\/\//i.test(RAW_URL);
 const hasKey = !!RAW_KEY;
