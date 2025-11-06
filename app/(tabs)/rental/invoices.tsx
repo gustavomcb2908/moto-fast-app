@@ -15,9 +15,21 @@ export default function InvoicesScreen() {
     try {
       setLoading(true);
       setErrorState(null);
+      const { data: authUser } = await supabase.auth.getUser();
+      const userId = authUser.user?.id;
+      if (!userId) throw new Error('Não autenticado');
+      const { data: courierRow, error: cErr } = await supabase
+        .from('couriers')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+      if (cErr) throw cErr;
+      const courierId = (courierRow as any)?.id as string | undefined;
+      if (!courierId) throw new Error('Courier não encontrado');
       const { data, error } = await supabase
         .from('invoices')
         .select('id, amount, due_date, status')
+        .eq('courier_id', courierId)
         .order('due_date', { ascending: true });
       if (error) throw error;
       const mapped = (data ?? []).map((d: any) => ({ id: String(d.id), amount: Number(d.amount ?? 0), dueDate: d.due_date ?? new Date().toISOString(), status: d.status ?? 'pending' }));

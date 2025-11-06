@@ -49,10 +49,19 @@ export default function RentalScreen() {
         return;
       }
 
+      const { data: courierRow, error: cErr } = await supabase
+        .from('couriers')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      if (cErr) throw cErr;
+      const courierId = (courierRow as any)?.id as string | undefined;
+      if (!courierId) throw new Error('Courier não encontrado para o utilizador atual.');
+
       const { data: vehicles, error: vErr } = await supabase
         .from('vehicles')
         .select('id, plate, model, rental_status, monthly_fee, next_payment_date')
-        .eq('courier_id', user.id)
+        .eq('courier_id', courierId)
         .limit(1);
       if (vErr) throw vErr;
       const v = vehicles?.[0];
@@ -71,7 +80,7 @@ export default function RentalScreen() {
       const { data: invoices, error: iErr } = await supabase
         .from('invoices')
         .select('id, amount, due_date, status')
-        .eq('courier_id', user.id)
+        .eq('courier_id', courierId)
         .order('due_date', { ascending: true })
         .limit(1);
       if (iErr) throw iErr;
