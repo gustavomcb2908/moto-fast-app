@@ -197,8 +197,13 @@ export default function OnboardingScreen() {
       const result = await register(payload);
 
       if (result.success) {
-        Alert.alert('Conta criada', 'Verifique seu e-mail para ativar a conta.');
-        router.replace('/login');
+        Alert.alert('Conta criada', 'Enviamos um e-mail de verificação. Abra seu e-mail para confirmar a conta.');
+        const email = (result as any).email as string | undefined;
+        if (email) {
+          router.replace({ pathname: '/verify-pending', params: { email } });
+        } else {
+          router.replace('/verify-pending');
+        }
       } else {
         Alert.alert('Erro', result.error || 'Erro ao registar');
       }

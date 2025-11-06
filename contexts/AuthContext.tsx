@@ -172,6 +172,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         success: true,
         message: 'Cadastro realizado. Verifique seu e-mail para confirmar a conta.',
         requiresVerification: true,
+        email,
       } as const;
     } catch (error: any) {
       console.error('❌ Registration error:', error);

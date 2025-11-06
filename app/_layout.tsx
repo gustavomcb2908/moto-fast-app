@@ -60,6 +60,7 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="forgot-password" options={{ presentation: 'modal' }} />
         <Stack.Screen name="kyc-status" options={{ presentation: 'card' }} />
+        <Stack.Screen name="verify-pending" options={{ presentation: 'card', title: 'Verifique seu e-mail' }} />
       </Stack>
     </View>
   );
