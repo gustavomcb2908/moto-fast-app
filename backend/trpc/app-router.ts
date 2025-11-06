@@ -15,6 +15,7 @@ import { uploadAvatarProcedure } from "./routes/profile/upload-avatar";
 import { getNotificationsProcedure, markNotificationReadProcedure } from "./routes/profile/notifications";
 import { getSupportMessagesProcedure, sendSupportMessageProcedure } from "./routes/profile/support-messages";
 import rentalRouter from './routes/rental/router';
+import traccarRouter from './routes/traccar/router';
 
 export const appRouter = createTRPCRouter({
   example: createTRPCRouter({
@@ -41,6 +42,7 @@ export const appRouter = createTRPCRouter({
     sendSupportMessage: sendSupportMessageProcedure,
   }),
   rental: rentalRouter,
+  traccar: traccarRouter,
 });
 
 export type AppRouter = typeof appRouter;
