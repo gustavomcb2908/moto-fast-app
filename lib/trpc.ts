@@ -38,8 +38,7 @@ export const getBaseUrl = () => {
     : undefined;
 
   if (expoGoUrl && isHttpUrl(expoGoUrl)) {
-    const base = expoGoUrl.replace(/:\d+$/, '');
-    return sanitizeUrl(base);
+    return sanitizeUrl(expoGoUrl);
   }
 
   console.warn('⚠️ No backend URL configured. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL. Falling back to relative /api');

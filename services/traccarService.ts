@@ -10,5 +10,13 @@ export type TraccarDevice = {
 };
 
 export function useTraccarDevices() {
-  return trpc.traccar.list.useQuery({ includePositions: true }, { staleTime: 60_000 });
+  return trpc.traccar.list.useQuery(
+    { includePositions: true },
+    {
+      staleTime: 60_000,
+      refetchInterval: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+    }
+  );
 }

@@ -48,18 +48,20 @@ export const listTraccarVehiclesProcedure = publicProcedure
       const auth = getBasicAuthHeader();
 
       const [devicesRes, positionsRes] = await Promise.all([
-        fetch(`${baseUrl}/devices`, { 
-          headers: { 
+        fetch(`${baseUrl}/devices`, {
+          headers: {
             Authorization: auth,
-            'Content-Type': 'application/json'
-          } 
+            'Content-Type': 'application/json',
+          },
         }),
-        input.includePositions ? fetch(`${baseUrl}/positions`, { 
-          headers: { 
-            Authorization: auth,
-            'Content-Type': 'application/json'
-          } 
-        }) : Promise.resolve(null),
+        input.includePositions
+          ? fetch(`${baseUrl}/positions?latest=true`, {
+              headers: {
+                Authorization: auth,
+                'Content-Type': 'application/json',
+              },
+            })
+          : Promise.resolve(null),
       ]);
 
       if (!devicesRes.ok) {
@@ -82,13 +84,17 @@ export const listTraccarVehiclesProcedure = publicProcedure
         }
       }
 
-      const byId = new Map<number, z.infer<typeof TraccarPositionSchema>>();
+      const byDeviceId = new Map<number, z.infer<typeof TraccarPositionSchema>>();
+      const byPositionId = new Map<number, z.infer<typeof TraccarPositionSchema>>();
       positions.forEach((p) => {
-        byId.set(p.id, p);
+        if (typeof p.deviceId === 'number') {
+          byDeviceId.set(p.deviceId, p);
+        }
+        byPositionId.set(p.id, p);
       });
 
       const enriched = devices.map((d) => {
-        const pos = d.positionId ? byId.get(d.positionId) : undefined;
+        const pos = byDeviceId.get(d.id) || (d.positionId ? byPositionId.get(d.positionId) : undefined);
         return {
           id: d.id,
           name: d.name,
@@ -101,7 +107,7 @@ export const listTraccarVehiclesProcedure = publicProcedure
         };
       });
 
-      console.log(`✅ Traccar: loaded ${enriched.length} devices`);
+      console.log(`✅ Traccar: loaded ${enriched.length} devices with ${positions.length} positions`);
       return { devices: enriched };
     } catch (error: any) {
       console.error('❌ Traccar integration error:', error.message);
