@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Image,
   Alert,
   Linking,
+  Platform as RNPlatform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,9 +33,15 @@ import {
   ArrowLeft,
   Camera,
   ShieldCheck,
+  MapPin,
+  Bike,
+
 } from 'lucide-react-native';
 
 type Step = 1 | 2 | 3 | 4 | 5;
+import { WebView } from 'react-native-webview';
+import { useTraccarDevices } from '@/services/traccarService';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -58,6 +65,14 @@ export default function OnboardingScreen() {
   });
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+  type VehicleRow = { id: string; plate: string | null; model: string | null; rental_status: string | null; monthly_fee: number | null; traccar_device_id?: number | null };
+  type MappedDevice = { deviceId: number; name: string; plate: string | null; model: string | null; monthlyFee: number; vehicleId: string | null; latitude: number; longitude: number };
+
+  const { data: traccarData } = useTraccarDevices();
+  const [vehiclesDb, setVehiclesDb] = useState<VehicleRow[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<MappedDevice | null>(null);
+  const webRef = useRef<WebView | null>(null);
 
   const emailValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email), [formData.email]);
   const passwordStrength = useMemo(() => {
@@ -107,6 +122,77 @@ export default function OnboardingScreen() {
 
 
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('id, plate, model, rental_status, monthly_fee, traccar_device_id')
+          .neq('rental_status', 'rented');
+        if (!error) setVehiclesDb((data as unknown as VehicleRow[]) ?? []);
+      } catch (e) {
+        console.log('vehicles load error', e);
+      }
+    })();
+  }, []);
+
+  const mappedDevices = useMemo<MappedDevice[]>(() => {
+    const devices = traccarData?.devices ?? [];
+    return devices
+      .filter((d: any) => d.position)
+      .map((d: any) => {
+        const match = vehiclesDb.find(
+          (v) => (v.traccar_device_id && v.traccar_device_id === d.id) || (v.plate && d.name?.includes(v.plate))
+        );
+        return {
+          deviceId: d.id,
+          name: d.name,
+          plate: match?.plate ?? null,
+          model: match?.model ?? null,
+          monthlyFee: Number(match?.monthly_fee ?? 0),
+          vehicleId: match?.id ?? null,
+          latitude: d.position.latitude,
+          longitude: d.position.longitude,
+        };
+      })
+      .filter((m: MappedDevice) => !!m.vehicleId);
+  }, [traccarData?.devices, vehiclesDb]);
+
+  const leafletHTML = useMemo(() => {
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const markers = mappedDevices.map((m) => ({ id: m.deviceId, lat: m.latitude, lng: m.longitude, name: m.name, plate: m.plate }));
+    const centerLat = markers[0]?.lat ?? 38.736946;
+    const centerLng = markers[0]?.lng ?? -9.142685;
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>html, body, #map { height: 100%; margin: 0; padding: 0; } .moto { filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }</style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      const markers = ${JSON.stringify(markers)};
+      const map = L.map('map').setView([${centerLat}, ${centerLng}], 14);
+      L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      function onSelect(id){ if(window.ReactNativeWebView && window.ReactNativeWebView.postMessage){ window.ReactNativeWebView.postMessage(String(id)); } }
+      markers.forEach(m => { const marker = L.marker([m.lat, m.lng], { title: m.name, className: 'moto' }).addTo(map); marker.bindPopup('<b>' + (m.plate || m.name) + '</b><br/>Toque para selecionar'); marker.on('click', () => onSelect(m.id)); });
+      true;
+    </script>
+  </body>
+</html>`;
+  }, [mappedDevices]);
+
+  const onMapMessage = useCallback((ev: any) => {
+    const id = Number(ev?.nativeEvent?.data ?? NaN);
+    if (!Number.isFinite(id)) return;
+    const target = mappedDevices.find((m) => m.deviceId === id) ?? null;
+    setSelectedDevice(target);
+    if (target?.vehicleId) setFormData((p) => ({ ...p, vehicleId: target.vehicleId as string }));
+  }, [mappedDevices]);
+
   const handleNext = () => {
     if (__DEV__) {
       console.log("🚀 [REGISTER] Botão pressionado - estado atual", { formData, currentStep, loading });
@@ -140,6 +226,13 @@ export default function OnboardingScreen() {
     if (currentStep === 3) {
       if (!formData.selfie) {
         Alert.alert('Erro', 'Tire uma selfie para verificação.');
+        return;
+      }
+    }
+
+    if (currentStep === 4) {
+      if (!formData.hasOwnMotorcycle && !formData.vehicleId) {
+        Alert.alert('Seleção de veículo', 'Selecione uma moto no mapa ou marque que possui uma moto.');
         return;
       }
     }
@@ -427,33 +520,43 @@ export default function OnboardingScreen() {
           <Text style={styles.vehicleDescription}>Selecionando esta opção, você usará sua própria moto nas entregas.</Text>
         </TouchableOpacity>
 
-        <View style={{ gap: 12, opacity: formData.hasOwnMotorcycle ? 0.5 : 1 }}>
-          {vehicles.map((v) => {
-            const selected = !formData.hasOwnMotorcycle && formData.vehicleId === v.id;
-            return (
-              <TouchableOpacity
-                key={v.id}
-                onPress={() => {
-                  if (!formData.hasOwnMotorcycle) setFormData((p) => ({ ...p, vehicleId: v.id }));
-                }}
-                disabled={formData.hasOwnMotorcycle}
-                activeOpacity={0.9}
-                style={[
-                  styles.vehicleCard,
-                  { borderWidth: 2, borderColor: selected ? Colors.primary : Colors.border, transform: [{ scale: selected ? 1.01 : 1 }] },
-                ]}
-                testID={`vehicle-${v.id}`}
-              >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={styles.vehicleName}>{v.name}</Text>
-                  {selected && <CheckCircle size={20} color={Colors.primary} />}
+        {!formData.hasOwnMotorcycle && (
+          <View style={{ gap: 12 }}>
+            {RNPlatform.OS === 'web' ? (
+              <View style={styles.mapPlaceholder}>
+                <MapPin size={32} color={Colors.textSecondary} />
+                <Text style={styles.mapPlaceholderText}>Abra no dispositivo para selecionar no mapa.</Text>
+              </View>
+            ) : (
+              <View style={styles.mapContainer}>
+                <WebView
+                  ref={webRef}
+                  originWhitelist={["*"]}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  onMessage={onMapMessage}
+                  source={{ html: leafletHTML }}
+                  style={{ flex: 1 }}
+                  testID="onboard-leaflet"
+                />
+              </View>
+            )}
+
+            {selectedDevice && (
+              <View style={styles.selectedCard} testID={`vehicle-${selectedDevice.vehicleId ?? 'unknown'}`}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Bike size={20} color={Colors.primary} />
+                    <Text style={styles.vehicleName}>{selectedDevice.model || selectedDevice.name}</Text>
+                  </View>
+                  <CheckCircle size={20} color={Colors.primary} />
                 </View>
-                <Text style={styles.vehiclePrice}>€{v.price}/mês</Text>
-                <Text style={styles.vehicleDescription}>{v.desc}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                <Text style={styles.vehicleDescription}>Matrícula: {selectedDevice.plate || '—'}</Text>
+                <Text style={styles.vehiclePrice}>€{Number(selectedDevice.monthlyFee || 0).toFixed(2)}/mês</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         <Text style={styles.infoText}>
           Pode alterar esta escolha depois. Mais opções estarão disponíveis após o registo.
@@ -771,6 +874,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600' as const,
     color: Colors.text,
+  },
+  mapContainer: {
+    height: 260,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  mapPlaceholder: {
+    height: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    gap: 8,
+  },
+  mapPlaceholderText: { color: Colors.textSecondary },
+  selectedCard: {
+    backgroundColor: Colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   nextButton: {
     flex: 1,
