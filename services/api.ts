@@ -7,12 +7,19 @@ const isUuid = (v: string): boolean =>
 export const AuthAPI = {
   login: (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password }),
-  signup: (email: string, password: string, name?: string) =>
-    supabase.auth.signUp({
+  signup: (email: string, password: string, name?: string) => {
+    const emailRedirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/verify-email?email=${encodeURIComponent(email)}`
+      : undefined;
+    return supabase.auth.signUp({
       email,
       password,
-      options: { data: name ? { full_name: name } : undefined },
-    }),
+      options: {
+        data: name ? { full_name: name } : undefined,
+        emailRedirectTo,
+      },
+    });
+  },
   logout: () => supabase.auth.signOut(),
   resetPassword: (email: string, redirectTo?: string) =>
     supabase.auth.resetPasswordForEmail(email, { redirectTo }),
