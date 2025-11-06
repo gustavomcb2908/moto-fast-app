@@ -7,12 +7,19 @@ import { mockOrders, Order } from '@/constants/mockData';
 import { MapPin } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import { usePermissionManager } from '@/utils/permissions';
+import { useTraccarDevices, TraccarDevice } from '@/services/traccarService';
 
 type OrderWithCoordinates = Order & {
   coordinates: {
     latitude: number;
     longitude: number;
   };
+};
+
+type DeviceWithCoords = Pick<TraccarDevice, 'id' | 'name' | 'status'> & {
+  latitude: number;
+  longitude: number;
+  speed: number;
 };
 
 export default function MapScreen() {
@@ -32,6 +39,21 @@ export default function MapScreen() {
         longitude: order.lng || (13.2894 + index * 0.01),
       },
     }));
+
+  const traccarQuery = useTraccarDevices();
+  const devices: DeviceWithCoords[] = useMemo(() => {
+    const list = traccarQuery.data?.devices ?? [];
+    return list
+      .filter((d) => d.position != null)
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        status: d.status,
+        latitude: d.position?.latitude ?? 0,
+        longitude: d.position?.longitude ?? 0,
+        speed: d.position?.speed ?? 0,
+      }));
+  }, [traccarQuery.data]);
 
   useEffect(() => {
     (async () => {
@@ -136,6 +158,7 @@ export default function MapScreen() {
             lat: o.coordinates.latitude, 
             lng: o.coordinates.longitude 
           })))};
+          const devices = ${JSON.stringify(devices)};
           const map = L.map('map').setView([userLat, userLng], 13);
           L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
           
@@ -151,6 +174,7 @@ export default function MapScreen() {
           
           let currentRouting = null;
           
+          // Render orders (demo)
           orders.forEach(o => {
             let statusColor = '#27AE60';
             let statusEmoji = '📦';
@@ -184,6 +208,35 @@ export default function MapScreen() {
             
             m.bindPopup(popupContent);
           });
+
+          // Render Traccar devices
+          const motoIcon = (active) => L.divIcon({
+            className: 'moto-marker',
+            html: '<div style="background:' + (active ? '#1F8E4D' : '#6B7280') + '; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><span style="font-size: 16px;">🏍️</span></div>',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+          });
+
+          const bounds = [];
+          devices.forEach(d => {
+            const isOnline = (d.status || '').toLowerCase() === 'online' || (d.speed ?? 0) > 0;
+            const marker = L.marker([d.latitude, d.longitude], { icon: motoIcon(isOnline), title: d.name }).addTo(map);
+            const distKm = (map.distance([userLat, userLng], [d.latitude, d.longitude]) / 1000).toFixed(1);
+            const popup = '<div style="min-width: 200px;">' +
+              '<strong style="color:#1F8E4D">' + d.name.replace(/</g,'&lt;') + '</strong><br/>' +
+              '<span>Status: ' + (isOnline ? 'Disponível' : 'Ocupado/Offline') + '</span><br/>' +
+              '<span>Velocidade: ' + (d.speed ?? 0) + ' km/h</span><br/>' +
+              '<span>Distância: ' + distKm + ' km</span><br/>' +
+              '<button onclick="createRoute(' + d.latitude + ',' + d.longitude + ')" style="background: linear-gradient(135deg, #27AE60, #1F8E4D); color: white; border: none; padding: 10px 16px; border-radius: 8px; margin-top: 8px; cursor: pointer; font-weight: 600; width: 100%;">Rota até aqui</button>' +
+            '</div>';
+            marker.bindPopup(popup);
+            bounds.push([d.latitude, d.longitude]);
+          });
+
+          if (bounds.length) {
+            bounds.push([userLat, userLng]);
+            map.fitBounds(bounds, { padding: [40, 40] });
+          }
 
           window.createRoute = function(destLat, destLng) {
             if (currentRouting) {
@@ -238,8 +291,8 @@ export default function MapScreen() {
         />
         <View style={styles.statsOverlay}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{activeOrders.length}</Text>
-            <Text style={styles.statLabel}>Entregas Ativas</Text>
+            <Text style={styles.statNumber}>{devices.length}</Text>
+            <Text style={styles.statLabel}>Motos disponíveis</Text>
           </View>
         </View>
       </View>
