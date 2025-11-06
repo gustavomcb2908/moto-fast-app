@@ -34,13 +34,13 @@ function AppSplashOverlay() {
   const rotateDeg = useMemo(() => rotate.interpolate({ inputRange: [0,1], outputRange: ['0deg','360deg'] }), [rotate]);
 
   return (
-    <LinearGradient colors={["#00C853", "#003300"]} style={StyleSheet.absoluteFillObject}>
+    <LinearGradient colors={["#27AE60", "#1F8E4D"]} style={StyleSheet.absoluteFillObject}>
       <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', opacity }} testID="splash-overlay">
         <Text style={{ color: '#fff', fontSize: 28, fontWeight: '700' as const, letterSpacing: 0.5 }}>Moto Fast</Text>
         <Animated.View style={{ position: 'absolute', bottom: 80, transform: [{ rotate: rotateDeg }] }}>
           <View style={{ width: 54, height: 54, alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ position: 'absolute', top: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' }} />
-            <View style={{ position: 'absolute', left: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#B2FF59' }} />
+            <View style={{ position: 'absolute', left: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#2ECC71' }} />
             <View style={{ position: 'absolute', right: 2, width: 10, height: 10, borderRadius: 5, backgroundColor: '#E8F5E9' }} />
           </View>
         </Animated.View>
@@ -68,6 +68,7 @@ function RootLayoutNav() {
       />
       <Stack screenOptions={{ headerBackTitle: t('common.back') }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="map-home" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -89,7 +90,7 @@ function AppShell() {
     const t = setTimeout(() => {
       setShowSplash(false);
       if (!isAuthenticated) {
-        router.replace('/welcome');
+        router.replace('/map-home');
       }
       SplashScreen.hideAsync();
     }, 2500);
