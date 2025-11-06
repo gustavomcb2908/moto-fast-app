@@ -108,6 +108,9 @@ export default function OnboardingScreen() {
 
 
   const handleNext = () => {
+    if (__DEV__) {
+      console.log("🚀 [REGISTER] Botão pressionado - estado atual", { formData, currentStep, loading });
+    }
     if (currentStep === 1) {
       if (!formData.name || !formData.email || !formData.phone || !formData.password) {
         Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
@@ -182,6 +185,9 @@ export default function OnboardingScreen() {
   };
 
   const handleRegister = async () => {
+    if (__DEV__) {
+      console.log('🧾 Prepare to register, step', currentStep);
+    }
     if (!formData.acceptTerms) {
       Alert.alert('Contrato', 'É necessário aceitar os termos para concluir.');
       return;
@@ -195,40 +201,45 @@ export default function OnboardingScreen() {
         convertImageToBase64(formData.selfie),
       ]);
 
-      const payload: any = {
-        name: formData.name,
-        email: formData.email,
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
         phone: formData.phone,
         password: formData.password,
-        hasOwnMotorcycle: formData.hasOwnMotorcycle,
-        vehicleId: formData.hasOwnMotorcycle ? undefined : formData.vehicleId,
-        accept_terms: formData.acceptTerms,
-        idDocument: idDocumentB64 ? `data:image/jpeg;base64,${idDocumentB64}` : undefined,
-        drivingLicense: drivingLicenseB64 ? `data:image/jpeg;base64,${drivingLicenseB64}` : undefined,
-        addressProof: addressProofB64 ? `data:image/jpeg;base64,${addressProofB64}` : undefined,
-        selfie: selfieB64 ? `data:image/jpeg;base64,${selfieB64}` : undefined,
-      };
+        hasOwnMotorcycle: formData.hasOwnMotorcycle ?? false,
+        vehicleId: formData.hasOwnMotorcycle ? null : (formData.vehicleId ?? null),
+        acceptTerms: formData.acceptTerms === true,
+        idDocument: idDocumentB64 ? `data:image/jpeg;base64,${idDocumentB64}` : null,
+        drivingLicense: drivingLicenseB64 ? `data:image/jpeg;base64,${drivingLicenseB64}` : null,
+        addressProof: addressProofB64 ? `data:image/jpeg;base64,${addressProofB64}` : null,
+        selfie: selfieB64 ? `data:image/jpeg;base64,${selfieB64}` : null,
+      } as const;
 
-      console.log('Payload preview:', Object.keys(payload), {
-        idDocument: !!payload.idDocument,
-        selfie: !!payload.selfie,
-      });
+      if (__DEV__) {
+        console.log('🧾 Payload final', {
+          ...payload,
+          idDocument: !!payload.idDocument,
+          drivingLicense: !!payload.drivingLicense,
+          addressProof: !!payload.addressProof,
+          selfie: !!payload.selfie,
+        });
+      }
 
       const result = await register(payload);
 
       if (result.success) {
-        Alert.alert('Conta criada', 'Enviamos um e-mail de verificação. Abra seu e-mail para confirmar a conta.');
+        Alert.alert('Cadastro concluído!', 'Verifique seu e-mail para ativar a conta.');
         const email = (result as any).email as string | undefined;
         if (email) {
-          router.replace({ pathname: '/verify-pending', params: { email } });
+          try { await new Promise(r => setTimeout(r, 1000)); router.replace({ pathname: '/verify-pending', params: { email } }); } catch (err) { console.warn('⚠️ Fallback para push:', err); router.push({ pathname: '/verify-pending', params: { email } }); }
         } else {
-          router.replace('/verify-pending');
+          try { await new Promise(r => setTimeout(r, 1000)); router.replace('/verify-pending'); } catch (err) { console.warn('⚠️ Fallback para push:', err); router.push('/verify-pending'); }
         }
       } else {
         Alert.alert('Erro', result.error || 'Erro ao registar');
       }
     } catch (error: any) {
-      console.log('Registration error', error);
+      console.error('❌ Erro ao registrar:', error);
       Alert.alert('Erro', error?.message ?? 'Erro ao registar. Tente novamente.');
     } finally {
       setLoading(false);

@@ -28,14 +28,13 @@ interface RegisterData {
   email: string;
   phone: string;
   password: string;
-  vehicleId?: string;
-  documents?: {
-    id_document?: string;
-    driver_license?: string;
-    proof_of_address?: string;
-    selfie?: string;
-  };
-  accept_terms: boolean;
+  hasOwnMotorcycle: boolean;
+  vehicleId: string | null;
+  acceptTerms: boolean;
+  idDocument: string | null;
+  drivingLicense: string | null;
+  addressProof: string | null;
+  selfie: string | null;
 }
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
@@ -162,21 +161,41 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const register = useCallback(async (userData: RegisterData) => {
     try {
-      console.log('📝 Attempting registration (Supabase)...');
-      const { email, password, name } = { email: userData.email, password: userData.password, name: userData.name };
-      const metadata: Record<string, unknown> = {
-        phone: userData.phone,
-        hasOwnMotorcycle: userData.vehicleId ? false : true,
-      };
-      const { data, error } = await AuthAPI.signup(email, password, name, metadata);
+      console.log('📝 Attempting registration (Supabase)...', {
+        email: userData.email,
+        hasDocs: !!(userData.idDocument || userData.drivingLicense || userData.addressProof || userData.selfie),
+      });
+
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email.toLowerCase().trim(),
+        password: userData.password,
+        options: {
+          data: {
+            full_name: userData.name.trim(),
+            phone: userData.phone,
+            hasOwnMotorcycle: userData.hasOwnMotorcycle ?? false,
+            vehicleId: userData.vehicleId,
+            acceptTerms: userData.acceptTerms === true,
+          },
+        },
+      });
+
       if (error) {
+        console.error('❌ Erro ao registrar:', error);
         return { success: false, error: error.message } as const;
       }
+
+      const signedUserEmail = data.user?.email ?? userData.email;
+
+      // NOTE: RLS prevents uploading documents before email verification. We defer uploads post-verification.
+      // The DB trigger will create a couriers row when the user confirms email.
+
+      console.log('✅ Registro concluído com sucesso:', { email: signedUserEmail });
       return {
         success: true,
         message: 'Cadastro realizado. Verifique seu e-mail para confirmar a conta.',
         requiresVerification: true,
-        email,
+        email: signedUserEmail,
       } as const;
     } catch (error: any) {
       console.error('❌ Registration error:', error);
