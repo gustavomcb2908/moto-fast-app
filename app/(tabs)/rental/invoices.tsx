@@ -3,16 +3,34 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useTheme } from '@/contexts/ThemeContext';
 import { FileText, CheckCircle2, AlertTriangle, Clock, ChevronRight } from 'lucide-react-native';
 import { Stack, router } from 'expo-router';
-import { trpc } from '@/lib/trpc';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function InvoicesScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { data, isLoading, error, refetch } = trpc.rental.listInvoices.useQuery({});
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [errorState, setErrorState] = React.useState<Error | null>(null);
+  const [invoices, setInvoices] = React.useState<{ id: string; amount: number; dueDate: string; status: string }[]>([]);
+  const refetch = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setErrorState(null);
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('id, amount, due_date, status')
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      const mapped = (data ?? []).map((d: any) => ({ id: String(d.id), amount: Number(d.amount ?? 0), dueDate: d.due_date ?? new Date().toISOString(), status: d.status ?? 'pending' }));
+      setInvoices(mapped);
+    } catch (e: any) {
+      setErrorState(new Error(e?.message || 'Falha ao carregar faturas'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  React.useEffect(() => { refetch(); }, [refetch]);
 
-  const invoices = (data?.data ?? []) as { id: string; amount: number; dueDate: string; status: string }[];
-
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator color={colors.primary} />
@@ -20,11 +38,11 @@ export default function InvoicesScreen() {
     );
   }
 
-  if (error) {
+  if (errorState) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 16 }]}>
-        <Text style={{ color: colors.error, marginBottom: 12 }}>Falha ao carregar faturas</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
+        <Text style={{ color: colors.error, marginBottom: 12 }}>{errorState.message}</Text>
+        <TouchableOpacity onPress={refetch} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
           <Text style={{ color: '#fff', fontWeight: '700' as const }}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>

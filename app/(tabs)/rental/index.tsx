@@ -32,7 +32,7 @@ export default function RentalScreen() {
       setError(null);
       const { data: vehicles, error: vErr } = await supabase
         .from('vehicles')
-        .select('id, plate, model, rental_status, monthly_fee')
+        .select('id, plate, model, rental_status, monthly_fee, next_payment_date')
         .eq('courier_id', user.id)
         .limit(1);
       if (vErr) throw vErr;
@@ -43,7 +43,7 @@ export default function RentalScreen() {
           model: (v as any).model ?? '—',
           rentalStatus: ((v as any).rental_status ?? 'active') as 'active' | 'pending',
           monthlyFee: Number((v as any).monthly_fee ?? 0),
-          nextPayment: (v as any).next_payment ?? new Date().toISOString(),
+          nextPayment: (v as any).next_payment_date ?? new Date().toISOString(),
         });
       } else {
         setVehicle(null);

@@ -4,7 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { CreditCard } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { trpc } from '@/lib/trpc';
+import { supabase } from '@/lib/supabaseClient';
 import { router } from 'expo-router';
 
 export default function PayScreen() {
@@ -13,18 +13,27 @@ export default function PayScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const params = useLocalSearchParams<{ invoiceId?: string; amount?: string }>();
 
-  const invoicesQuery = trpc.rental.listInvoices.useQuery({}, { enabled: !params.invoiceId });
-  const utils = trpc.useUtils();
-  const intentMutation = trpc.rental.payments.intent.useMutation();
-  const confirmMutation = trpc.rental.payments.confirm.useMutation();
+  const [invoices, setInvoices] = React.useState<{ id: string; amount: number }[]>([]);
+  React.useEffect(() => {
+    if (params.invoiceId) return;
+    (async () => {
+      const { data } = await supabase
+        .from('invoices')
+        .select('id, amount, status')
+        .eq('status', 'pending')
+        .order('due_date', { ascending: true });
+      const mapped = (data ?? []).map((d: any) => ({ id: String(d.id), amount: Number(d.amount ?? 0) }));
+      setInvoices(mapped);
+    })();
+  }, [params.invoiceId]);
 
   const targetInvoice = useMemo(() => {
     if (params.invoiceId && params.amount) {
       return { id: String(params.invoiceId), amount: Number(params.amount) };
     }
-    const firstPending = (invoicesQuery.data?.data ?? []).find((i: any) => i.status === 'pending');
-    return firstPending ? { id: String(firstPending.id), amount: Number(firstPending.amount) } : null;
-  }, [params.invoiceId, params.amount, invoicesQuery.data]);
+    const first = invoices[0];
+    return first ? { id: first.id, amount: first.amount } : null;
+  }, [params.invoiceId, params.amount, invoices]);
 
   const startCheckout = async () => {
     try {
@@ -33,13 +42,20 @@ export default function PayScreen() {
         return;
       }
       setLoading(true);
-      const res = await intentMutation.mutateAsync({ invoiceId: targetInvoice.id, amount: targetInvoice.amount });
-      const checkoutUrl = res?.data?.checkoutUrl ?? '';
-      if (!checkoutUrl) throw new Error('Falha ao iniciar checkout');
-      if (Platform.OS === 'web') {
-        window.open(checkoutUrl, '_blank');
+      const { data } = await supabase
+        .from('invoices')
+        .select('invoice_pdf_url')
+        .eq('id', targetInvoice.id)
+        .single();
+      const url = (data as any)?.invoice_pdf_url ?? '';
+      if (url) {
+        if (Platform.OS === 'web') {
+          window.open(url, '_blank');
+        } else {
+          await WebBrowser.openBrowserAsync(url);
+        }
       } else {
-        await WebBrowser.openBrowserAsync(checkoutUrl);
+        Alert.alert('Info', 'Sem checkout. Use Confirmar após o pagamento.');
       }
     } catch (e: any) {
       console.log('Checkout error', e);
@@ -53,9 +69,8 @@ export default function PayScreen() {
     try {
       if (!targetInvoice) return;
       setLoading(true);
-      await confirmMutation.mutateAsync({ invoiceId: targetInvoice.id });
-      await utils.rental.listInvoices.invalidate();
-      await utils.rental.payments.history.invalidate();
+      const { error } = await supabase.rpc('mark_invoice_paid', { invoice_id: targetInvoice.id, receipt: 'manual-confirmation' });
+      if (error) throw error;
       Alert.alert('Pagamento', 'Pagamento confirmado com sucesso!');
       try { router.back(); } catch {}
     } catch (e: any) {
