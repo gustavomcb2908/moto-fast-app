@@ -164,7 +164,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       console.log('📝 Attempting registration (Supabase)...');
       const { email, password, name } = { email: userData.email, password: userData.password, name: userData.name };
-      const { data, error } = await AuthAPI.signup(email, password, name);
+      const metadata: Record<string, unknown> = {
+        phone: userData.phone,
+        hasOwnMotorcycle: userData.vehicleId ? false : true,
+      };
+      const { data, error } = await AuthAPI.signup(email, password, name, metadata);
       if (error) {
         return { success: false, error: error.message } as const;
       }

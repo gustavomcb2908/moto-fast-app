@@ -182,8 +182,19 @@ export default function OnboardingScreen() {
   };
 
   const handleRegister = async () => {
+    if (!formData.acceptTerms) {
+      Alert.alert('Contrato', 'É necessário aceitar os termos para concluir.');
+      return;
+    }
     setLoading(true);
     try {
+      const [idDocumentB64, drivingLicenseB64, addressProofB64, selfieB64] = await Promise.all([
+        convertImageToBase64(formData.idDocument),
+        convertImageToBase64(formData.drivingLicense),
+        convertImageToBase64(formData.addressProof),
+        convertImageToBase64(formData.selfie),
+      ]);
+
       const payload: any = {
         name: formData.name,
         email: formData.email,
@@ -192,7 +203,16 @@ export default function OnboardingScreen() {
         hasOwnMotorcycle: formData.hasOwnMotorcycle,
         vehicleId: formData.hasOwnMotorcycle ? undefined : formData.vehicleId,
         accept_terms: formData.acceptTerms,
+        idDocument: idDocumentB64 ? `data:image/jpeg;base64,${idDocumentB64}` : undefined,
+        drivingLicense: drivingLicenseB64 ? `data:image/jpeg;base64,${drivingLicenseB64}` : undefined,
+        addressProof: addressProofB64 ? `data:image/jpeg;base64,${addressProofB64}` : undefined,
+        selfie: selfieB64 ? `data:image/jpeg;base64,${selfieB64}` : undefined,
       };
+
+      console.log('Payload preview:', Object.keys(payload), {
+        idDocument: !!payload.idDocument,
+        selfie: !!payload.selfie,
+      });
 
       const result = await register(payload);
 

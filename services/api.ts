@@ -7,7 +7,7 @@ const isUuid = (v: string): boolean =>
 export const AuthAPI = {
   login: (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password }),
-  signup: (email: string, password: string, name?: string) => {
+  signup: (email: string, password: string, name?: string, metadata?: Record<string, unknown>) => {
     const emailRedirectTo = typeof window !== 'undefined'
       ? `${window.location.origin}/verify-email?email=${encodeURIComponent(email)}`
       : undefined;
@@ -15,7 +15,7 @@ export const AuthAPI = {
       email,
       password,
       options: {
-        data: name ? { full_name: name } : undefined,
+        data: { ...(name ? { full_name: name } : {}), ...(metadata ?? {}) },
         emailRedirectTo,
       },
     });
