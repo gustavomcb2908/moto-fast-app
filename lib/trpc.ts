@@ -2,6 +2,8 @@ import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import type { AppRouter } from '@/backend/trpc/app-router';
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -25,6 +27,22 @@ export const getBaseUrl = () => {
     return sanitizeUrl(rawEnv);
   }
 
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return sanitizeUrl(window.location.origin);
+  }
+
+  const expoGoUrl: string | undefined = (Constants as any)?.expoConfig?.hostUri
+    ? `http://${(Constants as any).expoConfig.hostUri}`
+    : (Constants as any)?.manifest2?.extra?.expoGo?.developerHost
+    ? `http://${(Constants as any).manifest2.extra.expoGo.developerHost}`
+    : undefined;
+
+  if (expoGoUrl && isHttpUrl(expoGoUrl)) {
+    const base = expoGoUrl.replace(/:\d+$/, '');
+    return sanitizeUrl(base);
+  }
+
+  console.warn('⚠️ No backend URL configured. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL. Falling back to relative /api');
   return "";
 };
 
@@ -32,7 +50,7 @@ export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       transformer: superjson,
-      url: `${getBaseUrl()}/api/trpc`,
+      url: `${getBaseUrl() ? getBaseUrl() + '/api/trpc' : '/api/trpc'}`,
       async headers() {
         try {
           const token = await AsyncStorage.getItem('access_token');
