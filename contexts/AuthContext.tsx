@@ -166,26 +166,36 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         hasDocs: !!(userData.idDocument || userData.drivingLicense || userData.addressProof || userData.selfie),
       });
 
-      const { data, error } = await supabase.auth.signUp({
-        email: userData.email.toLowerCase().trim(),
-        password: userData.password,
-        options: {
-          data: {
-            full_name: userData.name.trim(),
-            phone: userData.phone,
-            hasOwnMotorcycle: userData.hasOwnMotorcycle ?? false,
-            vehicleId: userData.vehicleId,
-            acceptTerms: userData.acceptTerms === true,
-          },
-        },
-      });
+      const email = userData.email.toLowerCase().trim();
+      const baseMetadata: Record<string, unknown> = {
+        full_name: userData.name.trim(),
+        phone: userData.phone,
+        hasOwnMotorcycle: userData.hasOwnMotorcycle ?? false,
+        acceptTerms: userData.acceptTerms === true,
+      };
+      if (userData.vehicleId) baseMetadata.vehicleId = userData.vehicleId;
+
+      const attempt = async (minimal: boolean) => {
+        if (minimal) {
+          return AuthAPI.signup(email, userData.password);
+        }
+        return AuthAPI.signup(email, userData.password, userData.name.trim(), baseMetadata);
+      };
+
+      let { data, error } = await attempt(false);
+
+      if (error && /Database error saving new user/i.test(error.message || '')) {
+        console.warn('⚠️ Supabase returned DB error on signUp. Retrying with minimal payload...');
+        ({ data, error } = await attempt(true));
+      }
 
       if (error) {
         console.error('❌ Erro ao registrar:', error);
-        return { success: false, error: error.message } as const;
+        const nice = /already exists/i.test(error.message || '') ? 'Este e-mail já está registado.' : error.message;
+        return { success: false, error: nice } as const;
       }
 
-      const signedUserEmail = data.user?.email ?? userData.email;
+      const signedUserEmail = data.user?.email ?? email;
 
       // NOTE: RLS prevents uploading documents before email verification. We defer uploads post-verification.
       // The DB trigger will create a couriers row when the user confirms email.
