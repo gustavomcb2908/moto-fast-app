@@ -66,26 +66,41 @@ export const trpcClient = trpc.createClient({
           method: options?.method,
         });
         return fetch(url, options).then(async (res) => {
-          try {
-            const ct = res.headers.get("content-type") ?? "";
-            console.log('⬇️ tRPC Response:', {
-              url: String(url),
-              status: res.status,
-              contentType: ct,
-            });
-            if (!ct.includes("application/json")) {
+          const ct = res.headers.get("content-type") ?? "";
+          console.log('⬇️ tRPC Response:', {
+            url: String(url),
+            status: res.status,
+            contentType: ct,
+          });
+
+          if (!res.ok) {
+            console.error(`❌ tRPC HTTP Error ${res.status}`);
+          }
+
+          if (!ct.includes("application/json")) {
+            try {
               const text = await res.clone().text();
-              console.error("❌ tRPC non-JSON response", {
+              console.error("❌ tRPC non-JSON response:", {
                 url: String(url),
                 status: res.status,
-                text: text.slice(0, 500),
+                contentType: ct,
+                preview: text.slice(0, 300),
               });
-              throw new Error(`Resposta inválida do servidor (${res.status}): ${text.slice(0, 120)}`);
+
+              if (!res.ok) {
+                throw new Error(`Erro do servidor (${res.status}). Por favor, tente novamente.`);
+              }
+            } catch (err) {
+              if (err instanceof Error && err.message.includes('Erro do servidor')) {
+                throw err;
+              }
+              console.warn("⚠️ Could not read response text", err);
             }
-          } catch (err) {
-            console.log("❌ tRPC fetch inspector error", err);
           }
           return res;
+        }).catch((err) => {
+          console.error('❌ tRPC fetch error:', err.message || err);
+          throw err;
         });
       },
     }),

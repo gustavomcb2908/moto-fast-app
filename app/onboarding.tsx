@@ -69,7 +69,7 @@ export default function OnboardingScreen() {
   type VehicleRow = { id: string; plate: string | null; model: string | null; rental_status: string | null; monthly_fee: number | null; traccar_device_id?: number | null };
   type MappedDevice = { deviceId: number; name: string; plate: string | null; model: string | null; monthlyFee: number; vehicleId: string | null; latitude: number; longitude: number };
 
-  const { data: traccarData } = useTraccarDevices();
+  const { data: traccarData, error: traccarError, isLoading: traccarLoading } = useTraccarDevices();
   const [vehiclesDb, setVehiclesDb] = useState<VehicleRow[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<MappedDevice | null>(null);
   const webRef = useRef<WebView | null>(null);
@@ -138,6 +138,9 @@ export default function OnboardingScreen() {
 
   const mappedDevices = useMemo<MappedDevice[]>(() => {
     const devices = traccarData?.devices ?? [];
+    if (traccarError) {
+      console.warn('⚠️ Traccar service error:', traccarError);
+    }
     return devices
       .filter((d: any) => d.position)
       .map((d: any) => {
@@ -156,7 +159,7 @@ export default function OnboardingScreen() {
         };
       })
       .filter((m: MappedDevice) => !!m.vehicleId);
-  }, [traccarData?.devices, vehiclesDb]);
+  }, [traccarData?.devices, vehiclesDb, traccarError]);
 
   const leafletHTML = useMemo(() => {
     const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -526,6 +529,17 @@ export default function OnboardingScreen() {
               <View style={styles.mapPlaceholder}>
                 <MapPin size={32} color={Colors.textSecondary} />
                 <Text style={styles.mapPlaceholderText}>Abra no dispositivo para selecionar no mapa.</Text>
+              </View>
+            ) : traccarLoading ? (
+              <View style={styles.mapPlaceholder}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={styles.mapPlaceholderText}>Carregando motos disponíveis...</Text>
+              </View>
+            ) : mappedDevices.length === 0 ? (
+              <View style={styles.mapPlaceholder}>
+                <Bike size={32} color={Colors.textSecondary} />
+                <Text style={styles.mapPlaceholderText}>Nenhuma moto disponível no momento.</Text>
+                <Text style={[styles.mapPlaceholderText, { fontSize: 12, marginTop: 4 }]}>Selecione &quot;Tenho minha moto própria&quot; acima.</Text>
               </View>
             ) : (
               <View style={styles.mapContainer}>

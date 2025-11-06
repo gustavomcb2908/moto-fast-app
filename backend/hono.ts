@@ -47,6 +47,13 @@ app.use(
       console.error('   Path:', opts.path);
       console.error('   Type:', opts.type);
     },
+    responseMeta() {
+      return {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+    },
   })
 );
 

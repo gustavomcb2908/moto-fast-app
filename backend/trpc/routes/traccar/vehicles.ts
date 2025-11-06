@@ -35,50 +35,76 @@ function getBasicAuthHeader(): string {
 export const listTraccarVehiclesProcedure = publicProcedure
   .input(z.object({ includePositions: z.boolean().default(true) }))
   .query(async ({ input }: { input: { includePositions: boolean } }) => {
-    const baseUrl = process.env.TRACCAR_API_URL as string;
-    const auth = getBasicAuthHeader();
+    try {
+      const baseUrl = process.env.TRACCAR_API_URL;
+      const username = process.env.TRACCAR_USERNAME;
+      const password = process.env.TRACCAR_PASSWORD;
 
-    const [devicesRes, positionsRes] = await Promise.all([
-      fetch(`${baseUrl}/devices`, { headers: { Authorization: auth } }),
-      input.includePositions ? fetch(`${baseUrl}/positions`, { headers: { Authorization: auth } }) : Promise.resolve(null),
-    ]);
-
-    if (!devicesRes.ok) {
-      const text = await devicesRes.text();
-      throw new Error(`Traccar devices error ${devicesRes.status}: ${text.slice(0,200)}`);
-    }
-
-    const devicesJson = (await devicesRes.json()) as unknown[];
-    const devices = z.array(TraccarDeviceSchema).parse(devicesJson);
-
-    let positions: z.infer<typeof TraccarPositionSchema>[] = [];
-    if (positionsRes) {
-      if (!positionsRes.ok) {
-        const text = await positionsRes.text();
-        throw new Error(`Traccar positions error ${positionsRes.status}: ${text.slice(0,200)}`);
+      if (!baseUrl || !username || !password) {
+        console.warn('⚠️ Traccar credentials not configured, returning empty list');
+        return { devices: [] };
       }
-      const posJson = (await positionsRes.json()) as unknown[];
-      positions = z.array(TraccarPositionSchema).parse(posJson);
+
+      const auth = getBasicAuthHeader();
+
+      const [devicesRes, positionsRes] = await Promise.all([
+        fetch(`${baseUrl}/devices`, { 
+          headers: { 
+            Authorization: auth,
+            'Content-Type': 'application/json'
+          } 
+        }),
+        input.includePositions ? fetch(`${baseUrl}/positions`, { 
+          headers: { 
+            Authorization: auth,
+            'Content-Type': 'application/json'
+          } 
+        }) : Promise.resolve(null),
+      ]);
+
+      if (!devicesRes.ok) {
+        const text = await devicesRes.text();
+        console.error(`❌ Traccar devices error ${devicesRes.status}:`, text.slice(0, 200));
+        return { devices: [] };
+      }
+
+      const devicesJson = (await devicesRes.json()) as unknown[];
+      const devices = z.array(TraccarDeviceSchema).parse(devicesJson);
+
+      let positions: z.infer<typeof TraccarPositionSchema>[] = [];
+      if (positionsRes) {
+        if (!positionsRes.ok) {
+          const text = await positionsRes.text();
+          console.error(`❌ Traccar positions error ${positionsRes.status}:`, text.slice(0, 200));
+        } else {
+          const posJson = (await positionsRes.json()) as unknown[];
+          positions = z.array(TraccarPositionSchema).parse(posJson);
+        }
+      }
+
+      const byId = new Map<number, z.infer<typeof TraccarPositionSchema>>();
+      positions.forEach((p) => {
+        byId.set(p.id, p);
+      });
+
+      const enriched = devices.map((d) => {
+        const pos = d.positionId ? byId.get(d.positionId) : undefined;
+        return {
+          id: d.id,
+          name: d.name,
+          uniqueId: d.uniqueId ?? null,
+          status: d.status ?? 'unknown',
+          lastUpdate: d.lastUpdate ?? null,
+          position: pos
+            ? { latitude: pos.latitude, longitude: pos.longitude, speed: pos.speed ?? 0 }
+            : null,
+        };
+      });
+
+      console.log(`✅ Traccar: loaded ${enriched.length} devices`);
+      return { devices: enriched };
+    } catch (error: any) {
+      console.error('❌ Traccar integration error:', error.message);
+      return { devices: [] };
     }
-
-    const byId = new Map<number, z.infer<typeof TraccarPositionSchema>>();
-    positions.forEach((p) => {
-      byId.set(p.id, p);
-    });
-
-    const enriched = devices.map((d) => {
-      const pos = d.positionId ? byId.get(d.positionId) : undefined;
-      return {
-        id: d.id,
-        name: d.name,
-        uniqueId: d.uniqueId ?? null,
-        status: d.status ?? 'unknown',
-        lastUpdate: d.lastUpdate ?? null,
-        position: pos
-          ? { latitude: pos.latitude, longitude: pos.longitude, speed: pos.speed ?? 0 }
-          : null,
-      };
-    });
-
-    return { devices: enriched };
   });
