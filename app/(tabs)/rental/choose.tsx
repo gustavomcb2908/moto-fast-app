@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTraccarDevices } from '@/services/traccarService';
@@ -40,19 +40,32 @@ export default function RentMotorcycleScreen() {
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [selected, setSelected] = useState<MappedDevice | null>(null);
   const [loc, setLoc] = useState<Location.LocationObject | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
+  const [showBikesWithoutLocation, setShowBikesWithoutLocation] = useState<boolean>(false);
   const [loadingAction, setLoadingAction] = useState<boolean>(false);
   const { user } = useAuth();
 
   useEffect(() => {
     (async () => {
       try {
+        console.log('🗺️ Solicitando permissão de localização...');
         const { status } = await Location.requestForegroundPermissionsAsync();
+        
         if (status === 'granted') {
-          const l = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          console.log('✅ Permissão concedida, obtendo localização atual...');
+          const l = await Location.getCurrentPositionAsync({ 
+            accuracy: Location.Accuracy.High
+          });
+          console.log('📍 Localização obtida:', l.coords.latitude, l.coords.longitude);
           setLoc(l);
+          setLocationPermission('granted');
+        } else {
+          console.log('❌ Permissão de localização negada');
+          setLocationPermission('denied');
         }
       } catch (e) {
-        console.log('Location error', e);
+        console.error('❌ Erro ao obter localização:', e);
+        setLocationPermission('denied');
       }
     })();
   }, []);
@@ -107,54 +120,143 @@ export default function RentMotorcycleScreen() {
   }, [data?.devices, vehicles, loc]);
 
   const leafletHTML = useMemo(() => {
+    console.log('🗺️ Gerando HTML do mapa com', mapped.length, 'motos');
+    console.log('📍 Localização do usuário:', loc?.coords);
+    
     const tileUrl = isDark
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    const markers = mapped.map((m) => ({ id: m.deviceId, lat: m.latitude, lng: m.longitude, name: m.name, plate: m.plate }));
-    const centerLat = loc?.coords.latitude ?? (markers[0]?.lat ?? 38.736946);
-    const centerLng = loc?.coords.longitude ?? (markers[0]?.lng ?? -9.142685);
+    
+    const markers = mapped.map((m) => ({ 
+      id: m.deviceId, 
+      lat: m.latitude, 
+      lng: m.longitude, 
+      name: m.name, 
+      plate: m.plate,
+      model: m.model 
+    }));
+    
+    console.log('🏍️ Marcadores das motos:', markers);
+    
+    const hasUserLocation = loc?.coords?.latitude && loc?.coords?.longitude;
+    const centerLat = hasUserLocation ? loc.coords.latitude : (markers[0]?.lat ?? 38.736946);
+    const centerLng = hasUserLocation ? loc.coords.longitude : (markers[0]?.lng ?? -9.142685);
+    const initialZoom = hasUserLocation ? 15 : (markers.length > 0 ? 13 : 12);
 
     return `<!DOCTYPE html>
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
       html, body, #map { height: 100%; margin: 0; padding: 0; }
-      .moto { filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+      .bike-marker {
+        background: #27AE60;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        font-size: 20px;
+      }
+      .user-marker {
+        background: linear-gradient(135deg, #27AE60 0%, #1F8E4D 100%);
+        border: 4px solid #fff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.3), 0 4px 12px rgba(0,0,0,0.3);
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.3), 0 4px 12px rgba(0,0,0,0.3); }
+        50% { box-shadow: 0 0 0 8px rgba(39, 174, 96, 0.1), 0 4px 12px rgba(0,0,0,0.3); }
+      }
     </style>
   </head>
   <body>
     <div id="map"></div>
     <script>
+      console.log('🗺️ Inicializando mapa Leaflet...');
       const markers = ${JSON.stringify(markers)};
-      const map = L.map('map').setView([${centerLat}, ${centerLng}], 15);
-      L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      const userLat = ${JSON.stringify(loc?.coords?.latitude ?? null)};
+      const userLng = ${JSON.stringify(loc?.coords?.longitude ?? null)};
+      
+      console.log('📍 Motos no mapa:', markers.length);
+      console.log('👤 Localização do usuário:', userLat, userLng);
+      
+      const map = L.map('map').setView([${centerLat}, ${centerLng}], ${initialZoom});
+      L.tileLayer('${tileUrl}', { 
+        maxZoom: 19, 
+        attribution: '&copy; OpenStreetMap contributors' 
+      }).addTo(map);
+      
       function onSelect(id){
+        console.log('🏍️ Moto selecionada:', id);
         if(window.ReactNativeWebView && window.ReactNativeWebView.postMessage){
           window.ReactNativeWebView.postMessage(String(id));
         }
       }
-      const userLat = ${JSON.stringify(loc?.coords?.latitude ?? null)};
-      const userLng = ${JSON.stringify(loc?.coords?.longitude ?? null)};
+
+      const bikeIcon = L.divIcon({
+        className: 'bike-marker',
+        html: '🏍️',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+      });
 
       const bounds = [];
       markers.forEach(m => {
-        const marker = L.marker([m.lat, m.lng], { title: m.name, className: 'moto' }).addTo(map);
-        marker.bindPopup('<b>' + (m.plate || m.name) + '</b><br/>Toque para selecionar');
+        console.log('🏍️ Adicionando marcador:', m.plate || m.name, 'em', m.lat, m.lng);
+        const marker = L.marker([m.lat, m.lng], { 
+          icon: bikeIcon,
+          title: m.name 
+        }).addTo(map);
+        
+        const popupContent = '<div style="text-align:center;padding:8px;">' +
+          '<b style="font-size:14px;">' + (m.model || m.name) + '</b><br/>' +
+          '<span style="font-size:12px;color:#666;">' + (m.plate || '—') + '</span><br/>' +
+          '<button onclick="window.ReactNativeWebView.postMessage(' + m.id + ')" style="margin-top:8px;background:#27AE60;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">Selecionar</button>' +
+          '</div>';
+        
+        marker.bindPopup(popupContent);
         marker.on('click', () => onSelect(m.id));
         bounds.push([m.lat, m.lng]);
       });
 
       if (userLat && userLng) {
-        L.circleMarker([userLat, userLng], { radius: 6, color: '#27AE60', fillColor: '#27AE60', fillOpacity: 0.9 }).addTo(map);
-        map.setView([userLat, userLng], 16);
-      } else {
-        if (bounds.length > 1) { const b = L.latLngBounds(bounds); map.fitBounds(b, { padding: [24, 24] }); }
-        else if (bounds.length === 1) { map.setView(bounds[0], 16); }
+        console.log('📍 Adicionando marcador do usuário');
+        const userIcon = L.divIcon({
+          className: 'user-marker',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+        L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
+        bounds.push([userLat, userLng]);
+        
+        if (bounds.length > 1) {
+          console.log('🗺️ Ajustando mapa para mostrar usuário e motos');
+          const b = L.latLngBounds(bounds);
+          map.fitBounds(b, { padding: [50, 50], maxZoom: 15 });
+        } else {
+          map.setView([userLat, userLng], 15);
+        }
+      } else if (markers.length > 0) {
+        console.log('🗺️ Ajustando mapa para mostrar apenas motos');
+        if (bounds.length > 1) {
+          const b = L.latLngBounds(bounds);
+          map.fitBounds(b, { padding: [50, 50] });
+        } else if (bounds.length === 1) {
+          map.setView(bounds[0], 14);
+        }
       }
-      true;
+      
+      console.log('✅ Mapa inicializado com sucesso');
     </script>
   </body>
 </html>`;
@@ -201,10 +303,46 @@ export default function RentMotorcycleScreen() {
     }
   }, [selected, user?.id]);
 
-  if (isLoading) {
+  if (isLoading || locationPermission === 'pending') {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.primary} size="large" />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          {locationPermission === 'pending' ? 'Obtendo sua localização...' : 'Carregando motos disponíveis...'}
+        </Text>
+      </View>
+    );
+  }
+
+  if (locationPermission === 'denied' && !showBikesWithoutLocation) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Stack.Screen options={{
+          headerShown: true,
+          title: 'Escolher Moto',
+          headerTintColor: '#fff',
+          headerBackground: () => (
+            <LinearGradient colors={[colors.primary, '#1F8E4D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          ),
+        }} />
+        <MapPin size={64} color={colors.textSecondary} />
+        <Text style={[styles.permissionTitle, { color: colors.text }]}>Permissão de Localização Negada</Text>
+        <Text style={[styles.permissionSubtitle, { color: colors.textSecondary }]}>
+          Para ver as motos mais próximas de você, ative a permissão de localização.
+        </Text>
+        <TouchableOpacity 
+          onPress={() => setShowBikesWithoutLocation(true)} 
+          style={styles.showBikesBtn}
+          activeOpacity={0.8}
+        >
+          <LinearGradient 
+            colors={[colors.primary, '#1F8E4D']} 
+            start={{ x: 0, y: 0 }} 
+            end={{ x: 1, y: 1 }} 
+            style={StyleSheet.absoluteFill} 
+          />
+          <Text style={styles.showBikesText}>Ver motos disponíveis mesmo assim</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -319,4 +457,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   primaryBtnText: { color: '#fff', fontWeight: '700' as const },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   retryText: { color: '#fff', fontWeight: '700' as const },
+  loadingText: { marginTop: 12, fontSize: 14 },
+  permissionTitle: { fontSize: 20, fontWeight: '700' as const, marginTop: 16, textAlign: 'center' },
+  permissionSubtitle: { fontSize: 14, marginTop: 8, textAlign: 'center', paddingHorizontal: 32, lineHeight: 20 },
+  showBikesBtn: { marginTop: 24, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14, overflow: 'hidden', minWidth: 250 },
+  showBikesText: { color: '#fff', fontWeight: '700' as const, textAlign: 'center' },
 });
