@@ -14,7 +14,6 @@ import {
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '@/contexts/AuthContext';
-import { OrdersAPI, RpcAPI } from '@/services/api';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function RentalScreen() {
@@ -33,7 +32,7 @@ export default function RentalScreen() {
       setError(null);
       const { data: vehicles, error: vErr } = await supabase
         .from('vehicles')
-        .select('id, plate, model, rental_status, monthly_fee, next_payment')
+        .select('id, plate, model, rental_status, monthly_fee')
         .eq('courier_id', user.id)
         .limit(1);
       if (vErr) throw vErr;
@@ -59,6 +58,9 @@ export default function RentalScreen() {
       if (iErr) throw iErr;
       const inv = invoices?.[0];
       setNextInvoice(inv ? { id: inv.id as unknown as string, amount: Number((inv as any).amount ?? 0), dueDate: (inv as any).due_date ?? new Date().toISOString(), status: (inv as any).status ?? 'pending' } : null);
+      if (inv && (inv as any).due_date) {
+        setVehicle((prev) => (prev ? { ...prev, nextPayment: (inv as any).due_date } : prev));
+      }
     } catch (e: any) {
       setError(new Error(e?.message || 'Falha ao carregar'));
     } finally {
