@@ -136,6 +136,9 @@ export default function RentMotorcycleScreen() {
           window.ReactNativeWebView.postMessage(String(id));
         }
       }
+      const userLat = ${JSON.stringify(loc?.coords?.latitude ?? null)};
+      const userLng = ${JSON.stringify(loc?.coords?.longitude ?? null)};
+
       const bounds = [];
       markers.forEach(m => {
         const marker = L.marker([m.lat, m.lng], { title: m.name, className: 'moto' }).addTo(map);
@@ -143,10 +146,14 @@ export default function RentMotorcycleScreen() {
         marker.on('click', () => onSelect(m.id));
         bounds.push([m.lat, m.lng]);
       });
-      const userLat = ${JSON.stringify(loc?.coords?.latitude ?? null)};
-      const userLng = ${JSON.stringify(loc?.coords?.longitude ?? null)};
-      if (userLat && userLng) { bounds.push([userLat, userLng]); L.circleMarker([userLat, userLng], { radius: 6, color: '#27AE60', fillColor: '#27AE60', fillOpacity: 0.9 }).addTo(map); }
-      if (bounds.length > 1) { const b = L.latLngBounds(bounds); map.fitBounds(b, { padding: [24, 24] }); } else if (bounds.length === 1) { map.setView(bounds[0], 16); }
+
+      if (userLat && userLng) {
+        L.circleMarker([userLat, userLng], { radius: 6, color: '#27AE60', fillColor: '#27AE60', fillOpacity: 0.9 }).addTo(map);
+        map.setView([userLat, userLng], 16);
+      } else {
+        if (bounds.length > 1) { const b = L.latLngBounds(bounds); map.fitBounds(b, { padding: [24, 24] }); }
+        else if (bounds.length === 1) { map.setView(bounds[0], 16); }
+      }
       true;
     </script>
   </body>
