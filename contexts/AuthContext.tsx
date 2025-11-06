@@ -1,7 +1,8 @@
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { trpcClient } from '@/lib/trpc';
+import { AuthAPI, ProfilesAPI } from '@/services/api';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface User {
   id: string;
@@ -47,258 +48,198 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   });
 
   useEffect(() => {
-    loadStoredAuth();
-  }, []);
+    let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const { data: userData } = await AuthAPI.getUser();
+        const session = sessionData.session ?? null;
+        const spUser = userData.user ?? null;
 
-  const loadStoredAuth = async () => {
-    try {
-      const accessToken = await AsyncStorage.getItem('access_token');
-      const refreshToken = await AsyncStorage.getItem('refresh_token');
-      const userStr = await AsyncStorage.getItem('user');
-      
-      if (accessToken && refreshToken && userStr) {
-        const user = JSON.parse(userStr);
-        setAuthState({
-          user,
-          accessToken,
-          refreshToken,
-          isLoading: false,
-          isAuthenticated: true,
-        });
-        
-        try {
-          const meData = await trpcClient.auth.me.query();
-          if (meData.success) {
-            const updatedUser = meData.data;
-            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-            setAuthState(prev => ({
-              ...prev,
-              user: updatedUser as User,
-            }));
-          }
-        } catch (error) {
-          console.log('Failed to refresh user data, using stored data');
+        if (session && spUser) {
+          const profile = await ProfilesAPI.getCourierByUserId(spUser.id).catch(() => null);
+          const composedUser: User = {
+            id: spUser.id,
+            name: (profile as any)?.full_name ?? spUser.user_metadata?.full_name ?? spUser.email ?? 'User',
+            email: spUser.email ?? '',
+            phone: (profile as any)?.phone ?? '',
+            kyc_status: ((profile as any)?.kyc_status ?? 'pending') as User['kyc_status'],
+            email_verified: !!spUser.email_confirmed_at,
+          };
+
+          await AsyncStorage.setItem('access_token', session.access_token);
+          await AsyncStorage.setItem('refresh_token', session.refresh_token ?? '');
+          await AsyncStorage.setItem('user', JSON.stringify(composedUser));
+
+          setAuthState({
+            user: composedUser,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token ?? null,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+        } else {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
         }
-      } else {
+      } catch (e) {
+        console.error('Error initializing auth', e);
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
-    } catch (error) {
-      console.error('Error loading auth:', error);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
-  };
+
+      unsub = AuthAPI.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          const profile = await ProfilesAPI.getCourierByUserId(session.user.id).catch(() => null);
+          const composedUser: User = {
+            id: session.user.id,
+            name: (profile as any)?.full_name ?? session.user.user_metadata?.full_name ?? session.user.email ?? 'User',
+            email: session.user.email ?? '',
+            phone: (profile as any)?.phone ?? '',
+            kyc_status: ((profile as any)?.kyc_status ?? 'pending') as User['kyc_status'],
+            email_verified: !!session.user.email_confirmed_at,
+          };
+          await AsyncStorage.setItem('access_token', session.access_token);
+          await AsyncStorage.setItem('refresh_token', session.refresh_token ?? '');
+          await AsyncStorage.setItem('user', JSON.stringify(composedUser));
+          setAuthState(prev => ({
+            ...prev,
+            user: composedUser,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token ?? null,
+            isAuthenticated: true,
+            isLoading: false,
+          }));
+        } else {
+          await AsyncStorage.multiRemove(['access_token','refresh_token','user']);
+          setAuthState({ user: null, accessToken: null, refreshToken: null, isLoading: false, isAuthenticated: false });
+        }
+      });
+    })();
+
+    return () => {
+      try {
+        unsub?.data.subscription.unsubscribe();
+      } catch {}
+    };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      console.log('🔐 Attempting login...');
-      const result = await trpcClient.auth.login.mutate({ email, password });
-
-      if (result.success && result.data) {
-        const { accessToken, refreshToken, user } = result.data;
-
-        await AsyncStorage.setItem('access_token', accessToken);
-        await AsyncStorage.setItem('refresh_token', refreshToken);
-        await AsyncStorage.setItem('user', JSON.stringify(user));
-
-        setAuthState({
-          user: user as User,
-          accessToken,
-          refreshToken,
-          isLoading: false,
-          isAuthenticated: true,
-        });
-
-        console.log('✅ Login successful');
-        return { success: true };
+      console.log('🔐 Attempting login (Supabase)...');
+      const { data, error } = await AuthAPI.login(email, password);
+      if (error || !data.session || !data.user) {
+        return { success: false, error: error?.message || 'Erro ao fazer login' } as const;
       }
+      const session = data.session;
+      const profile = await ProfilesAPI.getCourierByUserId(data.user.id).catch(() => null);
+      const composedUser: User = {
+        id: data.user.id,
+        name: (profile as any)?.full_name ?? data.user.user_metadata?.full_name ?? data.user.email ?? 'User',
+        email: data.user.email ?? '',
+        phone: (profile as any)?.phone ?? '',
+        kyc_status: ((profile as any)?.kyc_status ?? 'pending') as User['kyc_status'],
+        email_verified: !!data.user.email_confirmed_at,
+      };
 
-      return { success: false, error: 'Erro ao fazer login' };
+      await AsyncStorage.setItem('access_token', session.access_token);
+      await AsyncStorage.setItem('refresh_token', session.refresh_token ?? '');
+      await AsyncStorage.setItem('user', JSON.stringify(composedUser));
+
+      setAuthState({
+        user: composedUser,
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token ?? null,
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      console.log('✅ Login successful');
+      return { success: true } as const;
     } catch (error: any) {
       console.error('❌ Login error:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Erro ao fazer login' 
-      };
+      return { success: false, error: error?.message || 'Erro ao fazer login' } as const;
     }
   }, []);
 
   const register = useCallback(async (userData: RegisterData) => {
     try {
-      console.log('📝 Attempting registration...');
-      const result = await trpcClient.auth.register.mutate(userData);
-
-      if (result.success) {
-        console.log('✅ Registration successful');
-        return { 
-          success: true,
-          message: result.message,
-          requiresVerification: true,
-        };
+      console.log('📝 Attempting registration (Supabase)...');
+      const { email, password, name } = { email: userData.email, password: userData.password, name: userData.name };
+      const { data, error } = await AuthAPI.signup(email, password, name);
+      if (error) {
+        return { success: false, error: error.message } as const;
       }
-
-      return { success: false, error: 'Erro ao registar' };
+      return {
+        success: true,
+        message: 'Cadastro realizado. Verifique seu e-mail para confirmar a conta.',
+        requiresVerification: true,
+      } as const;
     } catch (error: any) {
       console.error('❌ Registration error:', error);
-      const friendly =
-        typeof error?.message === 'string' && error.message.includes('JSON Parse error')
-          ? 'Falha ao comunicar com o servidor. Verifique a URL da API e sua conexão.'
-          : (error?.message || 'Erro ao registar');
-      return { 
-        success: false, 
-        error: friendly 
-      };
+      return { success: false, error: error?.message || 'Erro ao registar' } as const;
     }
   }, []);
 
-  const verifyEmail = useCallback(async (email: string, token: string) => {
-    try {
-      console.log('📧 Verifying email...');
-      const result = await trpcClient.auth.verifyEmail.mutate({ email, token });
-
-      if (result.success) {
-        console.log('✅ Email verified');
-        return { success: true, message: result.message };
-      }
-
-      return { success: false, error: 'Erro ao verificar e-mail' };
-    } catch (error: any) {
-      console.error('❌ Email verification error:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Erro ao verificar e-mail' 
-      };
-    }
+  const verifyEmail = useCallback(async (_email: string, _token: string) => {
+    return { success: true, message: 'Verifique seu e-mail e siga o link de confirmação enviado pelo Supabase.' } as const;
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
     try {
-      console.log('📧 Resending verification...');
-      const result = await trpcClient.auth.resendVerification.mutate({ email });
-
-      if (result.success) {
-        console.log('✅ Verification email resent');
-        return { success: true, message: result.message };
-      }
-
-      return { success: false, error: 'Erro ao reenviar verificação' };
+      const { error } = await supabase.auth.resend({ type: 'signup', email });
+      if (error) return { success: false, error: error.message } as const;
+      return { success: true, message: 'E-mail de verificação reenviado.' } as const;
     } catch (error: any) {
-      console.error('❌ Resend verification error:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Erro ao reenviar verificação' 
-      };
+      return { success: false, error: error?.message || 'Erro ao reenviar verificação' } as const;
     }
   }, []);
 
   const recoverPassword = useCallback(async (email: string) => {
     try {
-      console.log('🔑 Requesting password recovery...');
-      const result = await trpcClient.auth.recover.mutate({ email });
-
-      if (result.success) {
-        console.log('✅ Recovery email sent');
-        return { success: true, message: result.message };
-      }
-
-      return { success: false, error: 'Erro ao recuperar senha' };
+      const { error } = await AuthAPI.resetPassword(email, process.env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT ?? undefined);
+      if (error) return { success: false, error: error.message } as const;
+      return { success: true, message: 'Se existir uma conta, enviamos instruções de recuperação para o e-mail informado.' } as const;
     } catch (error: any) {
-      console.error('❌ Password recovery error:', error);
-      const friendly =
-        typeof error?.message === 'string' && error.message.includes('JSON Parse error')
-          ? 'Falha ao comunicar com o servidor. Tente novamente em instantes.'
-          : (error?.message || 'Erro ao recuperar senha');
-      return { 
-        success: false, 
-        error: friendly 
-      };
+      return { success: false, error: error?.message || 'Erro ao recuperar senha' } as const;
     }
   }, []);
 
-  const resetPassword = useCallback(async (email: string, token: string, newPassword: string) => {
+  const resetPassword = useCallback(async (_email: string, _token: string, newPassword: string) => {
     try {
-      console.log('🔑 Resetting password...');
-      const result = await trpcClient.auth.resetPassword.mutate({ 
-        email, 
-        token, 
-        newPassword 
-      });
-
-      if (result.success) {
-        console.log('✅ Password reset successful');
-        return { success: true, message: result.message };
-      }
-
-      return { success: false, error: 'Erro ao redefinir senha' };
+      const { error } = await AuthAPI.updatePassword(newPassword);
+      if (error) return { success: false, error: error.message } as const;
+      return { success: true, message: 'Senha atualizada com sucesso.' } as const;
     } catch (error: any) {
-      console.error('❌ Password reset error:', error);
-      return { 
-        success: false, 
-        error: error?.message || 'Erro ao redefinir senha' 
-      };
+      return { success: false, error: error?.message || 'Erro ao redefinir senha' } as const;
     }
   }, []);
 
   const refreshTokens = useCallback(async () => {
     try {
-      const currentRefreshToken = authState.refreshToken;
-      if (!currentRefreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      console.log('🔄 Refreshing tokens...');
-      const result = await trpcClient.auth.refresh.mutate({ 
-        refreshToken: currentRefreshToken 
-      });
-
-      if (result.success && result.data) {
-        const { accessToken, refreshToken } = result.data;
-
-        await AsyncStorage.setItem('access_token', accessToken);
-        await AsyncStorage.setItem('refresh_token', refreshToken);
-
-        setAuthState(prev => ({
-          ...prev,
-          accessToken,
-          refreshToken,
-        }));
-
-        console.log('✅ Tokens refreshed');
-        return { success: true };
-      }
-
-      return { success: false };
-    } catch (error: any) {
-      console.error('❌ Token refresh error:', error);
-      await logout();
-      return { success: false };
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      if (!session) throw new Error('No session');
+      await AsyncStorage.setItem('access_token', session.access_token);
+      if (session.refresh_token) await AsyncStorage.setItem('refresh_token', session.refresh_token);
+      setAuthState(prev => ({ ...prev, accessToken: session.access_token, refreshToken: session.refresh_token ?? prev.refreshToken }));
+      return { success: true } as const;
+    } catch (e) {
+      try { await AuthAPI.logout(); } catch {}
+      await AsyncStorage.multiRemove(['access_token','refresh_token','user']);
+      setAuthState({ user: null, accessToken: null, refreshToken: null, isLoading: false, isAuthenticated: false });
+      return { success: false } as const;
     }
-  }, [authState.refreshToken]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
-      if (authState.refreshToken && authState.refreshToken !== 'demo') {
-        await trpcClient.auth.logout.mutate({ 
-          refreshToken: authState.refreshToken 
-        });
-      }
-
-      await AsyncStorage.removeItem('access_token');
-      await AsyncStorage.removeItem('refresh_token');
-      await AsyncStorage.removeItem('user');
-      
-      setAuthState({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
-
+      await AuthAPI.logout();
+      await AsyncStorage.multiRemove(['access_token','refresh_token','user']);
+      setAuthState({ user: null, accessToken: null, refreshToken: null, isLoading: false, isAuthenticated: false });
       console.log('🚪 Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
-  }, [authState.refreshToken]);
+  }, []);
 
   const bypassDemoLogin = useCallback(async () => {
     try {
@@ -331,15 +272,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const refreshUserData = useCallback(async () => {
     try {
       if (!authState.isAuthenticated) return;
-
-      const meData = await trpcClient.auth.me.query();
-      if (meData.success) {
-        const updatedUser = meData.data;
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-        setAuthState(prev => ({
-          ...prev,
-          user: updatedUser as User,
-        }));
+      const { data } = await AuthAPI.getUser();
+      if (data.user) {
+        const profile = await ProfilesAPI.getCourierByUserId(data.user.id).catch(() => null);
+        const composedUser: User = {
+          id: data.user.id,
+          name: (profile as any)?.full_name ?? data.user.user_metadata?.full_name ?? data.user.email ?? 'User',
+          email: data.user.email ?? '',
+          phone: (profile as any)?.phone ?? '',
+          kyc_status: ((profile as any)?.kyc_status ?? 'pending') as User['kyc_status'],
+          email_verified: !!data.user.email_confirmed_at,
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(composedUser));
+        setAuthState(prev => ({ ...prev, user: composedUser }));
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);

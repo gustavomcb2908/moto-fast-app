@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -12,42 +12,73 @@ import {
   ChevronRight,
   Calendar,
 } from 'lucide-react-native';
-import { trpc } from '@/lib/trpc';
 import Constants from 'expo-constants';
+import { useAuth } from '@/contexts/AuthContext';
+import { OrdersAPI, RpcAPI } from '@/services/api';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function RentalScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { data, isLoading, error, refetch } = trpc.rental.getSummary.useQuery({}, {
-    retry: 2,
-    retryDelay: 1000,
-  });
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [vehicle, setVehicle] = useState<{ plate: string; model: string; rentalStatus: 'active' | 'pending'; monthlyFee: number; nextPayment: string } | null>(null);
+  const [nextInvoice, setNextInvoice] = useState<{ id: string; amount: number; dueDate: string; status: string } | null>(null);
 
-  React.useEffect(() => {
-    console.log('🔍 Backend URL config:');
-    console.log('  EXPO_PUBLIC_BACKEND_URL:', process.env.EXPO_PUBLIC_BACKEND_URL);
-    console.log('  EXPO_PUBLIC_RORK_API_BASE_URL:', process.env.EXPO_PUBLIC_RORK_API_BASE_URL);
+  const load = async () => {
+    try {
+      if (!user?.id) return;
+      setIsLoading(true);
+      setError(null);
+      const { data: vehicles, error: vErr } = await supabase
+        .from('vehicles')
+        .select('id, plate, model, rental_status, monthly_fee, next_payment')
+        .eq('courier_id', user.id)
+        .limit(1);
+      if (vErr) throw vErr;
+      const v = vehicles?.[0];
+      if (v) {
+        setVehicle({
+          plate: (v as any).plate ?? '—',
+          model: (v as any).model ?? '—',
+          rentalStatus: ((v as any).rental_status ?? 'active') as 'active' | 'pending',
+          monthlyFee: Number((v as any).monthly_fee ?? 0),
+          nextPayment: (v as any).next_payment ?? new Date().toISOString(),
+        });
+      } else {
+        setVehicle(null);
+      }
+
+      const { data: invoices, error: iErr } = await supabase
+        .from('invoices')
+        .select('id, amount, due_date, status')
+        .eq('courier_id', user.id)
+        .order('due_date', { ascending: true })
+        .limit(1);
+      if (iErr) throw iErr;
+      const inv = invoices?.[0];
+      setNextInvoice(inv ? { id: inv.id as unknown as string, amount: Number((inv as any).amount ?? 0), dueDate: (inv as any).due_date ?? new Date().toISOString(), status: (inv as any).status ?? 'pending' } : null);
+    } catch (e: any) {
+      setError(new Error(e?.message || 'Falha ao carregar'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('🔍 Supabase rental summary load');
     const hostUri = (Constants as any)?.expoConfig?.hostUri || (Constants as any)?.manifest2?.hostUri || (Constants as any)?.manifest?.hostUri;
     console.log('  hostUri:', hostUri);
-  }, []);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       console.error('❌ Erro ao carregar dados da locadora:', error);
-      console.error('❌ Mensagem:', error.message);
-      console.error('❌ Dados completos:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
   }, [error]);
-
-  React.useEffect(() => {
-    if (data) {
-      console.log('✅ Dados da locadora carregados com sucesso');
-      console.log('✅ Vehicle:', data?.data?.vehicle);
-    }
-  }, [data]);
-
-  const vehicle = data?.data?.vehicle;
-  const nextInvoice = data?.data?.nextInvoice as { id: string; amount: number; dueDate: string; status: string } | undefined;
   const hasInspectionPending = false;
 
   const renderMenuCard = (
@@ -86,17 +117,13 @@ export default function RentalScreen() {
   }
 
   if (error || !vehicle) {
-    const errorMessage = error?.message || error?.toString() || 'Erro desconhecido';
-    const errorData = error?.data as any;
+    const errorMessage = error?.message || 'Erro desconhecido';
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 16 }]}> 
         <Text style={{ color: colors.error, marginBottom: 4, fontSize: 16, fontWeight: '600' as const }}>Falha ao carregar dados</Text>
         <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 13, textAlign: 'center' }}>{errorMessage}</Text>
-        {errorData?.httpStatus && (
-          <Text style={{ color: colors.textSecondary, marginBottom: 8, fontSize: 11, textAlign: 'center' }}>Status HTTP: {errorData.httpStatus}</Text>
-        )}
         <Text style={{ color: colors.textSecondary, marginBottom: 16, fontSize: 11, textAlign: 'center', opacity: 0.7 }}>Verifique o console para mais detalhes</Text>
-        <TouchableOpacity onPress={() => refetch()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
+        <TouchableOpacity onPress={() => load()} style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 10 }}>
           <Text style={{ color: '#fff', fontWeight: '700' as const }}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>
