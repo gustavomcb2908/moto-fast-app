@@ -1,9 +1,7 @@
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import { Platform } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import type { AppRouter } from '@/backend/trpc/app-router';
 
 export const trpc = createTRPCReact<AppRouter>();
@@ -27,18 +25,6 @@ export const getBaseUrl = () => {
     return sanitizeUrl(rawEnv);
   }
 
-  if (Platform.OS === "web") {
-    return "";
-  }
-
-  const hostUri = (Constants as any)?.expoConfig?.hostUri || (Constants as any)?.manifest2?.hostUri || (Constants as any)?.manifest?.hostUri;
-  if (hostUri && typeof hostUri === 'string') {
-    const isPublic = /ngrok|trycloudflare|rork|vercel|\.app|\.dev/i.test(hostUri);
-    const base = hostUri.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    return sanitizeUrl(`${isPublic ? 'https' : 'http'}://${base}`);
-  }
-
-  console.warn("Backend URL missing. Set EXPO_PUBLIC_BACKEND_URL to your API base.");
   return "";
 };
 
