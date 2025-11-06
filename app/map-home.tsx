@@ -129,8 +129,7 @@ export default function MapHomeScreen() {
           longitude: d.position.longitude,
           distance,
         };
-      })
-      .filter((m: MappedDevice) => !!m.vehicleId);
+      });
   }, [traccarData?.devices, vehiclesDb, userLocation]);
 
   const leafletHTML = useMemo(() => {
