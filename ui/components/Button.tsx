@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -25,7 +26,7 @@ export default function Button({ title, onPress, disabled = false, loading = fal
       case 'danger':
         return { backgroundColor: '#EB5757' };
       default:
-        return { backgroundColor: colors.primary };
+        return { backgroundColor: 'transparent' };
     }
   }, [variant, colors]);
 
@@ -38,6 +39,14 @@ export default function Button({ title, onPress, disabled = false, loading = fal
       accessibilityRole="button"
       testID={testID}
     >
+      {variant === 'primary' && (
+        <LinearGradient
+          colors={[colors.primary, '#1F8E4D']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
       {loading ? (
         <ActivityIndicator color={variant === 'ghost' ? colors.text : colors.surface} />
       ) : (
@@ -59,6 +68,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 16,
+      overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.12,

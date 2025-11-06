@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { createRental } from '@/services/rentalService';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface VehicleRow {
   id: string;
@@ -128,18 +129,24 @@ export default function RentMotorcycleScreen() {
     <div id="map"></div>
     <script>
       const markers = ${JSON.stringify(markers)};
-      const map = L.map('map').setView([${centerLat}, ${centerLng}], 14);
+      const map = L.map('map').setView([${centerLat}, ${centerLng}], 15);
       L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
       function onSelect(id){
         if(window.ReactNativeWebView && window.ReactNativeWebView.postMessage){
           window.ReactNativeWebView.postMessage(String(id));
         }
       }
+      const bounds = [];
       markers.forEach(m => {
         const marker = L.marker([m.lat, m.lng], { title: m.name, className: 'moto' }).addTo(map);
         marker.bindPopup('<b>' + (m.plate || m.name) + '</b><br/>Toque para selecionar');
         marker.on('click', () => onSelect(m.id));
+        bounds.push([m.lat, m.lng]);
       });
+      const userLat = ${JSON.stringify(loc?.coords?.latitude ?? null)};
+      const userLng = ${JSON.stringify(loc?.coords?.longitude ?? null)};
+      if (userLat && userLng) { bounds.push([userLat, userLng]); L.circleMarker([userLat, userLng], { radius: 6, color: '#27AE60', fillColor: '#27AE60', fillOpacity: 0.9 }).addTo(map); }
+      if (bounds.length > 1) { const b = L.latLngBounds(bounds); map.fitBounds(b, { padding: [24, 24] }); } else if (bounds.length === 1) { map.setView(bounds[0], 16); }
       true;
     </script>
   </body>
@@ -209,7 +216,14 @@ export default function RentMotorcycleScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: true, title: 'Escolher Moto', headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text }} />
+      <Stack.Screen options={{
+        headerShown: true,
+        title: 'Escolher Moto',
+        headerTintColor: '#fff',
+        headerBackground: () => (
+          <LinearGradient colors={[colors.primary, '#1F8E4D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+        ),
+      }} />
       <View style={styles.mapBox}>
         <WebView
           ref={webRef}
@@ -258,7 +272,8 @@ export default function RentMotorcycleScreen() {
               style={[styles.primaryBtn, loadingAction ? { opacity: 0.6 } : null]}
               testID="confirm-rental"
               activeOpacity={0.8}
-            >
+>
+              <LinearGradient colors={[colors.primary, '#1F8E4D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
               {loadingAction ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -278,7 +293,7 @@ export default function RentMotorcycleScreen() {
 const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  mapBox: { flex: 1 },
+  mapBox: { height: 420 },
   overlayTop: { position: 'absolute', top: 12, left: 12, right: 12, alignItems: 'center' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   pillText: { color: colors.text, fontWeight: '600' as const },
@@ -293,7 +308,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) => StyleShe
   badgeOnline: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.success + '15', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
   badgeText: { color: colors.success, fontSize: 12, fontWeight: '600' as const },
-  primaryBtn: { marginTop: 16, flexDirection: 'row', gap: 10, backgroundColor: colors.primary, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 14 },
+  primaryBtn: { marginTop: 16, flexDirection: 'row', gap: 10, backgroundColor: 'transparent', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 14, overflow: 'hidden' },
   primaryBtnText: { color: '#fff', fontWeight: '700' as const },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
   retryText: { color: '#fff', fontWeight: '700' as const },
