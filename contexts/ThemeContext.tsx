@@ -25,7 +25,7 @@ export interface ThemeColors {
 const LIGHT: ThemeColors = {
   background: '#FFFFFF',
   text: '#1A1A1A',
-  primary: '#D7263D',
+  primary: '#27AE60',
   card: '#F5F5F5',
   border: '#E5E5E5',
   accent: '#27AE60',
@@ -42,7 +42,7 @@ const LIGHT: ThemeColors = {
 const DARK: ThemeColors = {
   background: '#121212',
   text: '#EDEDED',
-  primary: '#D7263D',
+  primary: '#27AE60',
   card: '#1A1A1A',
   border: '#2A2A2A',
   accent: '#27AE60',
