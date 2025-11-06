@@ -93,7 +93,7 @@ function AppShell() {
         router.replace('/map-home');
       }
       SplashScreen.hideAsync();
-    }, 2500);
+    }, 2000);
     return () => clearTimeout(t);
   }, [isAuthenticated]);
 

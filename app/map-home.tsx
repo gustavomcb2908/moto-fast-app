@@ -17,6 +17,7 @@ import { WebView } from 'react-native-webview';
 import Colors from '@/constants/colors';
 import { MapPin, Bike, Info, Navigation, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 type VehicleRow = {
   id: string;
@@ -152,22 +153,28 @@ export default function MapHomeScreen() {
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-      html, body, #map { height: 100%; margin: 0; padding: 0; background: #121212; }
+      html, body, #map { height: 100%; margin: 0; padding: 0; background: #0c0c0c; }
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(50, 215, 75, 0.6); }
+        70% { box-shadow: 0 0 0 14px rgba(50, 215, 75, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(50, 215, 75, 0); }
+      }
       .moto-marker {
-        background: #27AE60;
+        background: #32d74b;
         border: 3px solid #1F8E4D;
-        border-radius: 50%;
+        border-radius: 9999px;
         width: 40px;
         height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+        box-shadow: 0 4px 12px rgba(50, 215, 75, 0.4);
         cursor: pointer;
         transition: transform 0.2s;
+        animation: pulse 2.2s ease-out infinite;
       }
       .moto-marker:hover {
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
       .user-marker {
         background: #2F80ED;
@@ -210,7 +217,7 @@ export default function MapHomeScreen() {
       markers.forEach(m => {
         const motoIcon = L.divIcon({
           className: 'moto-marker',
-          html: '<div style="color: white; font-size: 20px;">🏍️</div>',
+          html: '<div style="color: black; font-size: 18px;">🛵</div>',
           iconSize: [40, 40],
         });
         
@@ -228,13 +235,14 @@ export default function MapHomeScreen() {
   }, [mappedDevices, userLocation]);
 
   const onMapMessage = useCallback(
-    (ev: any) => {
+    async (ev: any) => {
       const id = Number(ev?.nativeEvent?.data ?? NaN);
       if (!Number.isFinite(id)) return;
       const target = mappedDevices.find((m) => m.deviceId === id) ?? null;
       setSelectedDevice(target);
       
       if (target) {
+        try { if (Platform.OS !== 'web') { await Haptics.selectionAsync(); } } catch {}
         Animated.spring(bottomSheetAnim, {
           toValue: 0,
           useNativeDriver: true,
@@ -260,6 +268,7 @@ export default function MapHomeScreen() {
   };
 
   const handleOwnMotorcycle = () => {
+    try { if (Platform.OS !== 'web') { Haptics.selectionAsync(); } } catch {}
     router.push('/onboarding');
   };
 
@@ -359,19 +368,18 @@ export default function MapHomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.footer, { paddingBottom: 40 + insets.bottom }]}>
+          <View style={[styles.footer, { paddingBottom: 40 + insets.bottom }]} accessibilityLabel="footer-cta">
             <TouchableOpacity
               style={styles.ownMotorcycleButton}
               onPress={handleOwnMotorcycle}
               activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel="ja-tenho-moto"
             >
-              <LinearGradient
-                colors={[Colors.gradient.start, Colors.gradient.end]}
-                style={styles.ownMotorcycleGradient}
-              >
-                <Bike size={24} color={Colors.surface} />
-                <Text style={styles.ownMotorcycleText}>Já tenho moto</Text>
-              </LinearGradient>
+              <View style={styles.ownMotorcyclePill}>
+                <Bike size={22} color={Colors.background} />
+                <Text style={styles.ownMotorcycleTextDark}>Já tenho moto</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -590,17 +598,19 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 12,
   },
-  ownMotorcycleGradient: {
+  ownMotorcyclePill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 20,
+    gap: 10,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9999,
   },
-  ownMotorcycleText: {
-    fontSize: 18,
+  ownMotorcycleTextDark: {
+    fontSize: 17,
     fontWeight: '700' as const,
-    color: Colors.surface,
+    color: '#000000',
   },
   bottomSheet: {
     position: 'absolute',
