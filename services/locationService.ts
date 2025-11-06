@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getBaseUrl } from '@/lib/trpc';
+import { supabase } from '@/lib/supabaseClient';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 
@@ -38,42 +38,31 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }: any) => {
 
 async function sendLocationToServer(location: Location.LocationObject) {
   try {
-    const accessToken = await AsyncStorage.getItem('access_token');
-    if (!accessToken || accessToken === 'demo') {
-      return;
-    }
-
     const activeOrderId = await AsyncStorage.getItem('active_order_id');
     if (!activeOrderId) {
       return;
     }
 
-    const base = getBaseUrl();
-    if (!base) return;
-    const response = await fetch(`${base}/api/location/update`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        orderId: activeOrderId,
-        location: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy: location.coords.accuracy,
-          heading: location.coords.heading,
-          speed: location.coords.speed,
-          timestamp: location.timestamp,
-        },
-      }),
-    });
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id ?? null;
 
-    if (response.ok) {
-      console.log('✅ Location sent to server');
-    }
+    const payload = {
+      order_id: activeOrderId,
+      user_id: userId,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy ?? null,
+      heading: location.coords.heading ?? null,
+      speed: location.coords.speed ?? null,
+      timestamp: new Date(location.timestamp).toISOString(),
+    } as const;
+
+    const { error } = await supabase.from('order_locations').insert(payload);
+    if (error) throw error;
+
+    console.log('✅ Location saved to Supabase');
   } catch (error) {
-    console.error('❌ Failed to send location to server:', error);
+    console.error('❌ Failed to save location to Supabase:', error);
   }
 }
 

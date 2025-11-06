@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import type { Order } from './backgroundTasks';
-import { getBaseUrl } from '@/lib/trpc';
+import { supabase } from '@/lib/supabaseClient';
 
 let Notifications: any = null;
 let Device: any = null;
@@ -176,31 +176,24 @@ class NotificationService {
 
   private async sendTokenToServer(token: string): Promise<void> {
     try {
-      const accessToken = await AsyncStorage.getItem('access_token');
-      if (!accessToken || accessToken === 'demo') {
-        return;
-      }
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return;
 
-      const base = getBaseUrl();
-      if (!base) return;
-      const response = await fetch(`${base}/api/notifications/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ 
-          token,
-          platform: Platform.OS,
-          deviceId: Device?.modelId || 'unknown',
-        }),
-      });
+      const payload = {
+        user_id: userId,
+        token,
+        platform: Platform.OS,
+        device_id: Device?.modelId || 'unknown',
+        updated_at: new Date().toISOString(),
+      } as const;
 
-      if (response.ok) {
-        console.log('✅ Push token registered on server');
-      }
+      const { error } = await supabase.from('push_tokens').upsert(payload, { onConflict: 'user_id' });
+      if (error) throw error;
+
+      console.log('✅ Push token saved to Supabase');
     } catch (error) {
-      console.error('❌ Failed to send token to server:', error);
+      console.error('❌ Failed to save push token to Supabase:', error);
     }
   }
 
