@@ -1,7 +1,7 @@
 export const palette = {
-  primary: '#D7263D',
-  primaryLight: '#F04E60',
-  primaryDark: '#A51E30',
+  primary: '#27AE60',
+  primaryLight: '#2ECC71',
+  primaryDark: '#1F8E4D',
   brandGreen: '#27AE60',
   dark: {
     background: '#121212',
