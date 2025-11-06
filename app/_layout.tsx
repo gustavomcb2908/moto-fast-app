@@ -10,6 +10,7 @@ import { OrdersProvider } from "@/contexts/OrdersContext";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { ThemedDialogProvider } from "@/components/ThemedDialog";
 import LanguageDetector from "@/components/LanguageDetector";
+import { ToastContainer } from "@/components/Toast";
 import { LinearGradient } from 'expo-linear-gradient';
 import { registerBackgroundFetchAsync } from '@/services/backgroundTasks';
 import "@/i18n";
@@ -127,6 +128,7 @@ export default function RootLayout() {
                 <ThemedDialogProvider>
                   <LanguageDetector />
                   <AppShell />
+                  <ToastContainer />
                 </ThemedDialogProvider>
               </GestureHandlerRootView>
             </OrdersProvider>

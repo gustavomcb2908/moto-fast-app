@@ -101,10 +101,25 @@ export default function MapScreen() {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
         <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
         <style>
           html, body, #map { height: 100%; margin: 0; padding: 0; }
           .marker-active { filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+          .leaflet-routing-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 12px;
+            max-width: 90%;
+          }
+          .leaflet-routing-alt {
+            background: #27AE60;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 8px 0;
+          }
         </style>
       </head>
       <body>
@@ -112,15 +127,89 @@ export default function MapScreen() {
         <script>
           const userLat = ${location.coords.latitude};
           const userLng = ${location.coords.longitude};
-          const orders = ${JSON.stringify(activeOrders.map(o => ({ id: o.id, lat: o.coordinates.latitude, lng: o.coordinates.longitude })))};
-          const map = L.map('map').setView([userLat, userLng], 14);
-          L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-          const you = L.marker([userLat, userLng], { title: 'Você' }).addTo(map);
-          you.bindPopup('Você está aqui');
-          orders.forEach(o => {
-            const m = L.marker([o.lat, o.lng], { title: 'Pedido ' + o.id, className: 'marker-active' }).addTo(map);
-            m.bindPopup('Pedido #' + o.id);
+          const orders = ${JSON.stringify(activeOrders.map(o => ({ 
+            id: o.id, 
+            clientName: o.clientName,
+            address: o.address,
+            status: o.status,
+            value: o.value,
+            lat: o.coordinates.latitude, 
+            lng: o.coordinates.longitude 
+          })))};
+          const map = L.map('map').setView([userLat, userLng], 13);
+          L.tileLayer('${tileUrl}', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+          
+          const userIcon = L.divIcon({
+            className: 'user-marker',
+            html: '<div style="background: #27AE60; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 18px;">📍</span></div>',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
           });
+
+          const you = L.marker([userLat, userLng], { icon: userIcon, title: 'Você' }).addTo(map);
+          you.bindPopup('<strong style="color: #27AE60;">Você está aqui</strong>');
+          
+          let currentRouting = null;
+          
+          orders.forEach(o => {
+            let statusColor = '#27AE60';
+            let statusEmoji = '📦';
+            if (o.status === 'pending') {
+              statusColor = '#F2C94C';
+              statusEmoji = '⏳';
+            } else if (o.status === 'in_progress') {
+              statusColor = '#2F80ED';
+              statusEmoji = '🚀';
+            } else if (o.status === 'accepted') {
+              statusColor = '#27AE60';
+              statusEmoji = '✅';
+            }
+
+            const orderIcon = L.divIcon({
+              className: 'order-marker',
+              html: '<div style="background: ' + statusColor + '; width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;"><span style="font-size: 20px;">' + statusEmoji + '</span></div>',
+              iconSize: [36, 36],
+              iconAnchor: [18, 18]
+            });
+            
+            const m = L.marker([o.lat, o.lng], { icon: orderIcon, title: 'Pedido ' + o.id }).addTo(map);
+            
+            const popupContent = '<div style="min-width: 200px;">' +
+              '<strong style="color: #27AE60; font-size: 16px;">Pedido #' + o.id + '</strong><br>' +
+              '<strong>Cliente:</strong> ' + o.clientName + '<br>' +
+              '<strong>Endereço:</strong> ' + o.address + '<br>' +
+              '<strong>Valor:</strong> €' + o.value.toFixed(2) + '<br>' +
+              '<button onclick="createRoute(' + o.lat + ', ' + o.lng + ')" style="background: linear-gradient(135deg, #27AE60, #1F8E4D); color: white; border: none; padding: 10px 16px; border-radius: 8px; margin-top: 8px; cursor: pointer; font-weight: 600; width: 100%;">Ver Rota</button>' +
+              '</div>';
+            
+            m.bindPopup(popupContent);
+          });
+
+          window.createRoute = function(destLat, destLng) {
+            if (currentRouting) {
+              map.removeControl(currentRouting);
+            }
+            
+            currentRouting = L.Routing.control({
+              waypoints: [
+                L.latLng(userLat, userLng),
+                L.latLng(destLat, destLng)
+              ],
+              routeWhileDragging: false,
+              addWaypoints: false,
+              lineOptions: {
+                styles: [{
+                  color: '#27AE60',
+                  opacity: 0.8,
+                  weight: 6
+                }]
+              },
+              createMarker: function() { return null; },
+              show: true,
+              collapsible: true
+            }).addTo(map);
+          };
+          
           true;
         </script>
       </body>
