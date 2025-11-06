@@ -137,7 +137,7 @@ export default function RentMotorcycleScreen() {
       }
       markers.forEach(m => {
         const marker = L.marker([m.lat, m.lng], { title: m.name, className: 'moto' }).addTo(map);
-        marker.bindPopup(`<b>${m.plate || m.name}</b><br/>Toque para selecionar`);
+        marker.bindPopup('<b>' + (m.plate || m.name) + '</b><br/>Toque para selecionar');
         marker.on('click', () => onSelect(m.id));
       });
       true;
