@@ -25,11 +25,30 @@ export default function RentalScreen() {
   const [vehicle, setVehicle] = useState<{ plate: string; model: string; rentalStatus: 'active' | 'pending'; monthlyFee: number; nextPayment: string } | null>(null);
   const [nextInvoice, setNextInvoice] = useState<{ id: string; amount: number; dueDate: string; status: string } | null>(null);
 
+  const isUuid = (v: string): boolean =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
   const load = async () => {
     try {
       if (!user?.id) return;
       setIsLoading(true);
       setError(null);
+
+      if (!isUuid(user.id)) {
+        console.log('RentalScreen: demo user detected, using mock rental data');
+        const today = new Date();
+        const next = new Date(today.getFullYear(), today.getMonth() + 1, 5).toISOString();
+        setVehicle({
+          plate: 'AA-00-BB',
+          model: 'Yamaha NMAX 125',
+          rentalStatus: 'active',
+          monthlyFee: 179,
+          nextPayment: next,
+        });
+        setNextInvoice({ id: 'demo-invoice', amount: 179, dueDate: next, status: 'pending' });
+        return;
+      }
+
       const { data: vehicles, error: vErr } = await supabase
         .from('vehicles')
         .select('id, plate, model, rental_status, monthly_fee, next_payment_date')

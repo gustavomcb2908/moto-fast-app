@@ -245,7 +245,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       console.log('🧪 Activating demo bypass login');
       const demoUser: User = {
-        id: 'demo-user',
+        id: '00000000-0000-0000-0000-000000000000',
         name: 'Demo Rider',
         email: 'demo@moto.fast',
         phone: '+000000000',
