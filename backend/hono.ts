@@ -36,26 +36,26 @@ app.use("/api/trpc/*", async (c, next) => {
   await next();
 });
 
-app.use(
-  "/api/trpc/*",
-  trpcServer({
-    endpoint: "/api/trpc",
-    router: appRouter,
-    createContext,
-    onError(opts) {
-      console.error('❌ tRPC Error:', opts.error);
-      console.error('   Path:', opts.path);
-      console.error('   Type:', opts.type);
-    },
-    responseMeta() {
-      return {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      };
-    },
-  })
-);
+const trpcHandler = trpcServer({
+  endpoint: "/api/trpc",
+  router: appRouter,
+  createContext,
+  onError(opts) {
+    console.error('❌ tRPC Error:', opts.error);
+    console.error('   Path:', opts.path);
+    console.error('   Type:', opts.type);
+  },
+  responseMeta() {
+    return {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+  },
+});
+
+app.use("/api/trpc", trpcHandler);
+app.use("/api/trpc/*", trpcHandler);
 
 app.route('/api/admin', adminRouter);
 
