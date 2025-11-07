@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 export interface User {
   id: string;
   name: string;
@@ -55,218 +53,142 @@ export interface AuditLog {
   created_at: string;
 }
 
-const DB_PREFIX = 'motofast_db_';
+// In-memory fallback store for server runtime
+// IMPORTANT: This is a temporary, process-local store. It resets on server restart.
+const mem = {
+  users: [] as User[],
+  refresh_tokens: [] as RefreshToken[],
+  onetime_tokens: [] as OneTimeToken[],
+  admin_users: [] as AdminUser[],
+  audit_logs: [] as AuditLog[],
+};
 
 class Database {
   async getUsers(): Promise<User[]> {
-    try {
-      const data = await AsyncStorage.getItem(DB_PREFIX + 'users');
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('DB getUsers error:', error);
-      return [];
-    }
+    return [...mem.users];
   }
 
   async setUsers(users: User[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(DB_PREFIX + 'users', JSON.stringify(users));
-    } catch (error) {
-      console.error('DB setUsers error:', error);
-    }
+    mem.users = [...users];
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    const users = await this.getUsers();
-    const updated = users.filter(u => u.id !== id);
-    const changed = updated.length !== users.length;
-    if (changed) await this.setUsers(updated);
-    return changed;
+    const before = mem.users.length;
+    mem.users = mem.users.filter(u => u.id !== id);
+    return mem.users.length !== before;
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const users = await this.getUsers();
-    return users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+    const lower = email.toLowerCase();
+    return mem.users.find(u => u.email.toLowerCase() === lower) || null;
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const users = await this.getUsers();
-    return users.find(u => u.id === id) || null;
+    return mem.users.find(u => u.id === id) || null;
   }
 
   async createUser(user: User): Promise<User> {
-    const users = await this.getUsers();
-    users.push(user);
-    await this.setUsers(users);
+    mem.users.push(user);
     return user;
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | null> {
-    const users = await this.getUsers();
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) return null;
-    
-    users[index] = { ...users[index], ...updates, updated_at: new Date().toISOString() };
-    await this.setUsers(users);
-    return users[index];
+    const idx = mem.users.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+    mem.users[idx] = { ...mem.users[idx], ...updates, updated_at: new Date().toISOString() };
+    return mem.users[idx];
   }
 
   async getRefreshTokens(): Promise<RefreshToken[]> {
-    try {
-      const data = await AsyncStorage.getItem(DB_PREFIX + 'refresh_tokens');
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('DB getRefreshTokens error:', error);
-      return [];
-    }
+    return [...mem.refresh_tokens];
   }
 
   async setRefreshTokens(tokens: RefreshToken[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(DB_PREFIX + 'refresh_tokens', JSON.stringify(tokens));
-    } catch (error) {
-      console.error('DB setRefreshTokens error:', error);
-    }
+    mem.refresh_tokens = [...tokens];
   }
 
   async createRefreshToken(token: RefreshToken): Promise<RefreshToken> {
-    const tokens = await this.getRefreshTokens();
-    tokens.push(token);
-    await this.setRefreshTokens(tokens);
+    mem.refresh_tokens.push(token);
     return token;
   }
 
   async getRefreshTokenByHash(hash: string): Promise<RefreshToken | null> {
-    const tokens = await this.getRefreshTokens();
-    return tokens.find(t => t.token_hash === hash && !t.revoked_at) || null;
+    return mem.refresh_tokens.find(t => t.token_hash === hash && !t.revoked_at) || null;
   }
 
   async revokeRefreshToken(tokenHash: string): Promise<void> {
-    const tokens = await this.getRefreshTokens();
-    const index = tokens.findIndex(t => t.token_hash === tokenHash);
-    if (index !== -1) {
-      tokens[index].revoked_at = new Date().toISOString();
-      await this.setRefreshTokens(tokens);
-    }
+    const idx = mem.refresh_tokens.findIndex(t => t.token_hash === tokenHash);
+    if (idx !== -1) mem.refresh_tokens[idx].revoked_at = new Date().toISOString();
   }
 
   async revokeAllUserRefreshTokens(userId: string): Promise<void> {
-    const tokens = await this.getRefreshTokens();
     const now = new Date().toISOString();
-    const updated = tokens.map(t => 
+    mem.refresh_tokens = mem.refresh_tokens.map(t =>
       t.user_id === userId && !t.revoked_at ? { ...t, revoked_at: now } : t
     );
-    await this.setRefreshTokens(updated);
   }
 
   async getOneTimeTokens(): Promise<OneTimeToken[]> {
-    try {
-      const data = await AsyncStorage.getItem(DB_PREFIX + 'onetime_tokens');
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('DB getOneTimeTokens error:', error);
-      return [];
-    }
+    return [...mem.onetime_tokens];
   }
 
   async setOneTimeTokens(tokens: OneTimeToken[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(DB_PREFIX + 'onetime_tokens', JSON.stringify(tokens));
-    } catch (error) {
-      console.error('DB setOneTimeTokens error:', error);
-    }
+    mem.onetime_tokens = [...tokens];
   }
 
   async createOneTimeToken(token: OneTimeToken): Promise<OneTimeToken> {
-    const tokens = await this.getOneTimeTokens();
-    tokens.push(token);
-    await this.setOneTimeTokens(tokens);
+    mem.onetime_tokens.push(token);
     return token;
   }
 
   async getOneTimeToken(tokenHash: string, type: 'verify' | 'reset'): Promise<OneTimeToken | null> {
-    const tokens = await this.getOneTimeTokens();
-    return tokens.find(t => 
-      t.token_hash === tokenHash && 
-      t.type === type && 
-      !t.used_at &&
-      new Date(t.expires_at) > new Date()
-    ) || null;
+    const now = new Date();
+    return (
+      mem.onetime_tokens.find(t =>
+        t.token_hash === tokenHash && t.type === type && !t.used_at && new Date(t.expires_at) > now
+      ) || null
+    );
   }
 
   async markOneTimeTokenUsed(tokenHash: string): Promise<void> {
-    const tokens = await this.getOneTimeTokens();
-    const index = tokens.findIndex(t => t.token_hash === tokenHash);
-    if (index !== -1) {
-      tokens[index].used_at = new Date().toISOString();
-      await this.setOneTimeTokens(tokens);
-    }
+    const idx = mem.onetime_tokens.findIndex(t => t.token_hash === tokenHash);
+    if (idx !== -1) mem.onetime_tokens[idx].used_at = new Date().toISOString();
   }
 
   async cleanupExpiredTokens(): Promise<void> {
     const now = new Date();
-    
-    const otTokens = await this.getOneTimeTokens();
-    const validOT = otTokens.filter(t => new Date(t.expires_at) > now || t.used_at);
-    await this.setOneTimeTokens(validOT);
-
-    const refreshTokens = await this.getRefreshTokens();
-    const validRT = refreshTokens.filter(t => new Date(t.expires_at) > now || t.revoked_at);
-    await this.setRefreshTokens(validRT);
+    mem.onetime_tokens = mem.onetime_tokens.filter(t => new Date(t.expires_at) > now || t.used_at);
+    mem.refresh_tokens = mem.refresh_tokens.filter(t => new Date(t.expires_at) > now || t.revoked_at);
   }
 
   async getAdminUsers(): Promise<AdminUser[]> {
-    try {
-      const data = await AsyncStorage.getItem(DB_PREFIX + 'admin_users');
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('DB getAdminUsers error:', error);
-      return [];
-    }
+    return [...mem.admin_users];
   }
 
   async setAdminUsers(admins: AdminUser[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(DB_PREFIX + 'admin_users', JSON.stringify(admins));
-    } catch (error) {
-      console.error('DB setAdminUsers error:', error);
-    }
+    mem.admin_users = [...admins];
   }
 
   async getAdminByEmail(email: string): Promise<AdminUser | null> {
-    const admins = await this.getAdminUsers();
-    return admins.find(a => a.email.toLowerCase() === email.toLowerCase()) || null;
+    const lower = email.toLowerCase();
+    return mem.admin_users.find(a => a.email.toLowerCase() === lower) || null;
   }
 
   async createAdminUser(admin: AdminUser): Promise<AdminUser> {
-    const admins = await this.getAdminUsers();
-    admins.push(admin);
-    await this.setAdminUsers(admins);
+    mem.admin_users.push(admin);
     return admin;
   }
 
   async getAuditLogs(): Promise<AuditLog[]> {
-    try {
-      const data = await AsyncStorage.getItem(DB_PREFIX + 'audit_logs');
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('DB getAuditLogs error:', error);
-      return [];
-    }
+    return [...mem.audit_logs];
   }
 
   async setAuditLogs(logs: AuditLog[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(DB_PREFIX + 'audit_logs', JSON.stringify(logs));
-    } catch (error) {
-      console.error('DB setAuditLogs error:', error);
-    }
+    mem.audit_logs = [...logs];
   }
 
   async addAuditLog(log: AuditLog): Promise<AuditLog> {
-    const logs = await this.getAuditLogs();
-    logs.push(log);
-    await this.setAuditLogs(logs);
+    mem.audit_logs.push(log);
     return log;
   }
 }

@@ -43,7 +43,7 @@ export default function MapScreen() {
   const traccarQuery = useTraccarDevices();
   const devices: DeviceWithCoords[] = useMemo(() => {
     const list = traccarQuery.data?.devices ?? [];
-    return list
+    const mapped = list
       .filter((d) => d.position != null)
       .map((d) => ({
         id: d.id,
@@ -53,7 +53,18 @@ export default function MapScreen() {
         longitude: d.position?.longitude ?? 0,
         speed: d.position?.speed ?? 0,
       }));
-  }, [traccarQuery.data]);
+    if ((traccarQuery.error as any)?.message) {
+      console.log('❌ Traccar query error:', (traccarQuery.error as any).message);
+    }
+    console.log('🛰️ Traccar devices loaded:', {
+      total: list.length,
+      withPosition: mapped.length,
+      isFetching: traccarQuery.isFetching,
+      isRefetching: traccarQuery.isRefetching,
+      status: traccarQuery.status,
+    });
+    return mapped;
+  }, [traccarQuery.data, traccarQuery.error, traccarQuery.isFetching, traccarQuery.isRefetching, traccarQuery.status]);
 
   useEffect(() => {
     (async () => {
@@ -294,6 +305,21 @@ export default function MapScreen() {
             <Text style={styles.statNumber}>{devices.length}</Text>
             <Text style={styles.statLabel}>Motos disponíveis</Text>
           </View>
+          {traccarQuery.isLoading ? (
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Carregando motos...</Text>
+            </View>
+          ) : null}
+          {traccarQuery.error ? (
+            <View style={styles.statCard}>
+              <Text style={[styles.statLabel, { color: '#ef4444' }]}>Erro ao carregar motos</Text>
+            </View>
+          ) : null}
+          {!traccarQuery.error && !traccarQuery.isLoading && devices.length === 0 ? (
+            <View style={styles.statCard}>
+              <Text style={styles.statLabel}>Nenhuma moto com posição</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </>
