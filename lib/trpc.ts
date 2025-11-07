@@ -18,7 +18,16 @@ export const getBaseUrl = () => {
     process.env.EXPO_PUBLIC_API_URL,
   ].filter(Boolean) as string[];
 
-  const rawEnv = envCandidates[0] ?? "";
+  let rawEnv = envCandidates[0] ?? "";
+  if (rawEnv) {
+    const lower = rawEnv.toLowerCase();
+    const isLocalhost = /(^|\/)localhost[:/]|127\.0\.0\.1|::1/.test(lower);
+    if (Platform.OS !== 'web' && isLocalhost) {
+      console.warn('⚠️ Ignoring localhost backend URL on native. Falling back to Expo host/tunnel.');
+      rawEnv = "";
+    }
+  }
+
   if (rawEnv) {
     if (!isHttpUrl(rawEnv)) {
       console.error("Invalid backend URL. Must start with http:// or https://");
@@ -31,17 +40,17 @@ export const getBaseUrl = () => {
     return sanitizeUrl(window.location.origin);
   }
 
-  const expoGoUrl: string | undefined = (Constants as any)?.expoConfig?.hostUri
-    ? `http://${(Constants as any).expoConfig.hostUri}`
-    : (Constants as any)?.manifest2?.extra?.expoGo?.developerHost
-    ? `http://${(Constants as any).manifest2.extra.expoGo.developerHost}`
-    : undefined;
+  const expoHost = (Constants as any)?.expoConfig?.hostUri
+    ?? (Constants as any)?.manifest2?.extra?.expoGo?.developerHost
+    ?? undefined;
+
+  const expoGoUrl = expoHost ? `http://${expoHost}` : undefined;
 
   if (expoGoUrl && isHttpUrl(expoGoUrl)) {
     return sanitizeUrl(expoGoUrl);
   }
 
-  console.warn('⚠️ No backend URL configured. Set EXPO_PUBLIC_BACKEND_URL or EXPO_PUBLIC_RORK_API_BASE_URL. Falling back to relative /api');
+  console.warn('⚠️ No backend URL configured. Using relative /api for fetch (may fail on native).');
   return "";
 };
 
@@ -102,7 +111,8 @@ export const trpcClient = trpc.createClient({
           }
           return res;
         }).catch((err) => {
-          console.error('❌ tRPC fetch error:', err.message || err);
+          console.error('❌ tRPC fetch error:', err?.message || String(err));
+          console.error('   Base URL:', getBaseUrl());
           throw err;
         });
       },
