@@ -1,13 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../create-context';
-import { db } from '../../../lib/db';
-import { 
-  hashPassword, 
-  generateRandomToken, 
-  hashToken, 
-  getTokenExpirationDate 
-} from '../../../lib/auth';
-import { sendVerificationEmail } from '../../../lib/email';
+import { supabaseServer } from '../../../lib/supabase';
 
 export const registerProcedure = publicProcedure
   .input(z.object({
@@ -20,52 +13,36 @@ export const registerProcedure = publicProcedure
   }))
   .mutation(async ({ input }) => {
     const inputSize = Buffer.byteLength(JSON.stringify(input), 'utf8');
-    console.log('📝 Registration request:', { email: input.email, name: input.name, inputSize });
+    console.log('📝 Registration request (Supabase):', { email: input.email, name: input.name, inputSize });
 
-    const existingUser = await db.getUserByEmail(input.email);
-    if (existingUser) {
-      console.log('❌ User already exists:', input.email);
-      throw new Error('Este e-mail já está registado');
-    }
+    const emailRedirectTo = process.env.EXPO_PUBLIC_FRONTEND_URL
+      ? `${process.env.EXPO_PUBLIC_FRONTEND_URL}/verify-email?email=${encodeURIComponent(input.email)}`
+      : undefined;
 
-    const userId = 'u_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    const passwordHash = await hashPassword(input.password);
-
-    const newUser = await db.createUser({
-      id: userId,
-      name: input.name,
+    const { data, error } = await supabaseServer.auth.signUp({
       email: input.email,
-      phone: input.phone,
-      password_hash: passwordHash,
-      email_verified: false,
-      kyc_status: 'pending',
-      documents: {},
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      password: input.password,
+      options: {
+        data: {
+          full_name: input.name,
+          phone: input.phone,
+          accept_terms: input.accept_terms,
+          ...(input.vehicleId ? { vehicleId: input.vehicleId } : {}),
+        },
+        emailRedirectTo,
+      },
     });
 
-    const verifyToken = generateRandomToken();
-    const tokenHash = hashToken(verifyToken);
-
-    await db.createOneTimeToken({
-      id: 'ot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-      user_id: newUser.id,
-      token_hash: tokenHash,
-      type: 'verify',
-      expires_at: getTokenExpirationDate(24),
-      created_at: new Date().toISOString(),
-    });
-
-    const emailResult = await sendVerificationEmail(newUser.email, newUser.name, verifyToken);
-    
-    console.log('✅ User registered successfully:', newUser.id);
-    if (!emailResult.success) {
-      console.warn('⚠️ Failed to send verification email');
+    if (error) {
+      console.error('❌ Supabase signUp error:', error.message);
+      throw new Error(/already exists/i.test(error.message) ? 'Este e-mail já está registado' : error.message);
     }
+
+    console.log('✅ User registered (Supabase):', data.user?.id);
 
     return {
       success: true,
-      message: 'Conta criada com sucesso! Por favor, verifique o seu e-mail.',
-      userId: newUser.id,
+      message: 'Conta criada. Verifique seu e-mail para confirmar.',
+      userId: data.user?.id ?? null,
     };
   });
